@@ -710,7 +710,7 @@ init =
             ]
         , dousi =
             ([ Dousi "燃" <| Shimo "あ"
-            , Dousi "生" <| Kami  "き"
+            , Dousi "生" <| Kami  "か"
             , Dousi "話" <| Godan "さ"
             , Dousi "寝" <| Shimo ""
             , Dousi "光" <| Godan "ら"
