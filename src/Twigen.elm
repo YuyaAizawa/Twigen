@@ -140,10 +140,14 @@ view model =
                 ][]
             , select
                 [ onInput <| gyouSettei model.tuikaSettei ]
-                [ option [ Attr.value "あ" ][ text <| "あ行" ]
+                [ option [ Attr.value "" ][ text <| "" ]
+                , option [ Attr.value "あ" ][ text <| "あ行" ]
                 , option [ Attr.value "か" ][ text <| "か行" ]
+                , option [ Attr.value "が" ][ text <| "が行" ]
                 , option [ Attr.value "さ" ][ text <| "さ行" ]
+                , option [ Attr.value "ざ" ][ text <| "ざ行" ]
                 , option [ Attr.value "た" ][ text <| "た行" ]
+                , option [ Attr.value "だ" ][ text <| "だ行" ]
                 , option [ Attr.value "な" ][ text <| "な行" ]
                 , option [ Attr.value "ば" ][ text <| "ば行" ]
                 , option [ Attr.value "ま" ][ text <| "ま行" ]
@@ -615,14 +619,26 @@ katuyougobi katuyou =
         Godan "ま" -> Katuyougobi "ま" ( "み", "ん" ) "む" "む" "め" "め"
         Godan "ら" -> Katuyougobi "ら" ( "り", "っ" ) "る" "る" "れ" "れ"
         Godan "わ" -> Katuyougobi "わ" ( "い", "っ" ) "う" "う" "え" "え"
-        Kami  "き" -> Katuyougobi "き" ( "き", "き" ) "きる" "きる" "きれ" "きろ"
+        Kami  ""   -> Katuyougobi "" ( "", "" ) "る" "る" "れ" "ろ"
+        Kami  "あ" -> Katuyougobi "い" ( "い", "い" ) "いる" "いる" "いれ" "いろ"
+        Kami  "か" -> Katuyougobi "き" ( "き", "き" ) "きる" "きる" "きれ" "きろ"
+        Kami  "が" -> Katuyougobi "ぎ" ( "ぎ", "ぎ" ) "ぎる" "ぎる" "ぎれ" "ぎろ"
+        Kami  "ざ" -> Katuyougobi "じ" ( "じ", "じ" ) "じる" "じる" "じれ" "じろ"
         Kami  "た" -> Katuyougobi "ち" ( "ち", "ち" ) "ちる" "ちる" "ちれ" "ちろ"
+        Kami  "ば" -> Katuyougobi "び" ( "び", "び" ) "びる" "びる" "びれ" "びろ"
+        Kami  "ま" -> Katuyougobi "み" ( "み", "み" ) "みる" "みる" "みれ" "みろ"
+        Kami  "ら" -> Katuyougobi "り" ( "り", "り" ) "りる" "りる" "りれ" "りろ"
         Shimo ""   -> Katuyougobi "" ( "", "" ) "る" "る" "れ" "ろ"
         Shimo "あ" -> Katuyougobi "え" ( "え", "え" ) "える" "える" "えれ" "えろ"
+        Shimo "か" -> Katuyougobi "け" ( "け", "け" ) "ける" "ける" "けれ" "けろ"
         Shimo "が" -> Katuyougobi "げ" ( "げ", "げ" ) "げる" "げる" "げれ" "げろ"
         Shimo "さ" -> Katuyougobi "せ" ( "せ", "せ" ) "せる" "せる" "せれ" "せろ"
+        Shimo "ざ" -> Katuyougobi "ぜ" ( "ぜ", "ぜ" ) "ぜる" "ぜる" "ぜれ" "ぜろ"
+        Shimo "た" -> Katuyougobi "て" ( "て", "て" ) "てる" "てる" "てれ" "てろ"
+        Shimo "だ" -> Katuyougobi "で" ( "で", "で" ) "でる" "でる" "でれ" "でろ"
         Shimo "ば" -> Katuyougobi "べ" ( "べ", "べ" ) "べる" "べる" "べれ" "べろ"
         Shimo "ま" -> Katuyougobi "め" ( "め", "め" ) "める" "める" "めれ" "めろ"
+        Shimo "ら" -> Katuyougobi "れ" ( "れ", "れ" ) "れる" "れる" "れれ" "れろ"
         Sahen      -> Katuyougobi "し" ( "し", "し" ) "する" "する" "すれ" "せよ"
         _          -> Katuyougobi "Error" ( "Error", "Error" ) "Error" "Error" "Error" "Error"
 
