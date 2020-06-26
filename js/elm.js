@@ -5263,7 +5263,7 @@ var $author$project$Twigen$init = _Utils_Tuple2(
 						A2(
 						$author$project$Twigen$Dousi,
 						'生',
-						$author$project$Twigen$Kami('き')),
+						$author$project$Twigen$Kami('か')),
 						A2(
 						$author$project$Twigen$Dousi,
 						'話',
