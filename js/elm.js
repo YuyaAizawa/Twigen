@@ -5238,6 +5238,8 @@ var $author$project$Twigen$Jidousi = {$: 'Jidousi'};
 var $author$project$Twigen$Kami = function (a) {
 	return {$: 'Kami', a: a};
 };
+var $author$project$Twigen$Ryouhou = {$: 'Ryouhou'};
+var $author$project$Twigen$Sahen = {$: 'Sahen'};
 var $author$project$Twigen$Shimo = function (a) {
 	return {$: 'Shimo', a: a};
 };
@@ -5291,78 +5293,98 @@ var $author$project$Twigen$init = _Utils_Tuple2(
 						'落',
 						$author$project$Twigen$Kami('た'))
 					])),
-			A2(
-				$elm$core$List$map,
-				function (f) {
-					return f($author$project$Twigen$Tadousi);
-				},
-				_List_fromArray(
-					[
+			_Utils_ap(
+				A2(
+					$elm$core$List$map,
+					function (f) {
+						return f($author$project$Twigen$Tadousi);
+					},
+					_List_fromArray(
+						[
+							A2(
+							$author$project$Twigen$Dousi,
+							'食',
+							$author$project$Twigen$Shimo('ば')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'飲',
+							$author$project$Twigen$Godan('ま')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'買',
+							$author$project$Twigen$Godan('わ')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'見',
+							$author$project$Twigen$Shimo('')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'見',
+							$author$project$Twigen$Shimo('さ')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'書',
+							$author$project$Twigen$Godan('か')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'送',
+							$author$project$Twigen$Godan('ら')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'使',
+							$author$project$Twigen$Godan('わ')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'話',
+							$author$project$Twigen$Godan('さ')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'穿',
+							$author$project$Twigen$Godan('た')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'曲',
+							$author$project$Twigen$Shimo('が')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'攻',
+							$author$project$Twigen$Shimo('ま')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'落と',
+							$author$project$Twigen$Godan('さ')),
+							A2(
+							$author$project$Twigen$Dousi,
+							'叩',
+							$author$project$Twigen$Godan('か'))
+						])),
+				_Utils_ap(
+					A2(
+						$elm$core$List$map,
+						function (gokan) {
+							return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Jidousi);
+						},
+						_List_fromArray(
+							['筋トレ', '崩壊'])),
+					_Utils_ap(
 						A2(
-						$author$project$Twigen$Dousi,
-						'食',
-						$author$project$Twigen$Shimo('ば')),
+							$elm$core$List$map,
+							function (gokan) {
+								return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Tadousi);
+							},
+							_List_fromArray(
+								['待望', '強要', '報告', '実装', '連想'])),
 						A2(
-						$author$project$Twigen$Dousi,
-						'飲',
-						$author$project$Twigen$Godan('ま')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'買',
-						$author$project$Twigen$Godan('わ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'見',
-						$author$project$Twigen$Shimo('')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'見',
-						$author$project$Twigen$Shimo('さ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'書',
-						$author$project$Twigen$Godan('か')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'送',
-						$author$project$Twigen$Godan('ら')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'使',
-						$author$project$Twigen$Godan('わ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'話',
-						$author$project$Twigen$Godan('さ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'穿',
-						$author$project$Twigen$Godan('た')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'曲',
-						$author$project$Twigen$Shimo('が')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'攻',
-						$author$project$Twigen$Shimo('ま')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'落と',
-						$author$project$Twigen$Godan('さ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'叩',
-						$author$project$Twigen$Godan('か'))
-					]))),
+							$elm$core$List$map,
+							function (gokan) {
+								return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Ryouhou);
+							},
+							_List_fromArray(
+								['配信', '開発', 'エンジョイ'])))))),
 		keiyousi: _List_fromArray(
 			['美し', '優し', '賢', '虚し', '怖', '痛', '悲し', '美味し', '醜', '悔し', '可愛', '大き', '長', '若', '深', '遠', '暗', '薄', 'たくまし', '楽し', '激し']),
 		meisi: _List_fromArray(
 			['人', '神', '他人', '人類', '可能性', 'アイドル', '可燃性', '群馬', '年収', '百合', 'メモリ空間', '流動性', 'ＣＰＵ', '化粧品', '生活リズム', 'バナナ', '隠れマルコフモデル', '猫', '筑波大学', '核実験', 'ＡＩ', '薬', '社会', 'ゴリラ', '単位', '人生', 'オタク']),
-		sahenJidousi: _List_fromArray(
-			['筋トレ', '配信', '開発', '崩壊', 'エンジョイ']),
-		sahenTadousi: _List_fromArray(
-			['待望', '強要', '報告', '実装', '連想']),
 		sentences: _List_Nil,
 		tuikaSettei: {gokan: '', gyou: 'あ', katuyoukei: '五段', syurui: '自動詞'}
 	},
@@ -5621,8 +5643,8 @@ var $author$project$Twigen$choice = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 475, column: 34},
-					end: {line: 475, column: 44}
+					start: {line: 335, column: 34},
+					end: {line: 335, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -5887,8 +5909,8 @@ var $author$project$Twigen$generatorFromList = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 487, column: 34},
-					end: {line: 487, column: 44}
+					start: {line: 632, column: 34},
+					end: {line: 632, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -5896,8 +5918,6 @@ var $author$project$Twigen$generatorFromList = function (list) {
 		return A2($elm$random$Random$uniform, hd, tl);
 	}
 };
-var $author$project$Twigen$Ryouhou = {$: 'Ryouhou'};
-var $author$project$Twigen$Sahen = {$: 'Sahen'};
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -5910,21 +5930,14 @@ var $elm$core$List$filter = F2(
 			list);
 	});
 var $author$project$Twigen$jidousi = function (model) {
-	var sahenDousi = A2(
-		$elm$core$List$map,
-		function (gokan) {
-			return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Jidousi);
-		},
-		model.sahenJidousi);
-	var others = A2(
-		$elm$core$List$filter,
-		function (_v0) {
-			var syurui = _v0.c;
-			return _Utils_eq(syurui, $author$project$Twigen$Jidousi) || _Utils_eq(syurui, $author$project$Twigen$Ryouhou);
-		},
-		model.dousi);
 	return $author$project$Twigen$generatorFromList(
-		_Utils_ap(sahenDousi, others));
+		A2(
+			$elm$core$List$filter,
+			function (_v0) {
+				var syurui = _v0.c;
+				return _Utils_eq(syurui, $author$project$Twigen$Jidousi) || _Utils_eq(syurui, $author$project$Twigen$Ryouhou);
+			},
+			model.dousi));
 };
 var $author$project$Twigen$keiyousi = function (model) {
 	return A2(
@@ -6005,27 +6018,31 @@ var $elm$random$Random$map3 = F4(
 			});
 	});
 var $author$project$Twigen$meisi = function (model) {
+	var sahenMeisi = A2(
+		$elm$core$List$map,
+		function (_v1) {
+			var gokan = _v1.a;
+			return gokan;
+		},
+		A2(
+			$elm$core$List$filter,
+			function (_v0) {
+				var katuyoukei = _v0.b;
+				return _Utils_eq(katuyoukei, $author$project$Twigen$Sahen);
+			},
+			model.dousi));
 	return $author$project$Twigen$generatorFromList(
-		_Utils_ap(
-			model.meisi,
-			_Utils_ap(model.sahenJidousi, model.sahenTadousi)));
+		_Utils_ap(model.meisi, sahenMeisi));
 };
 var $author$project$Twigen$tadousi = function (model) {
-	var sahenDousi = A2(
-		$elm$core$List$map,
-		function (gokan) {
-			return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Tadousi);
-		},
-		model.sahenTadousi);
-	var others = A2(
-		$elm$core$List$filter,
-		function (_v0) {
-			var syurui = _v0.c;
-			return _Utils_eq(syurui, $author$project$Twigen$Tadousi) || _Utils_eq(syurui, $author$project$Twigen$Ryouhou);
-		},
-		model.dousi);
 	return $author$project$Twigen$generatorFromList(
-		_Utils_ap(sahenDousi, others));
+		A2(
+			$elm$core$List$filter,
+			function (_v0) {
+				var syurui = _v0.c;
+				return _Utils_eq(syurui, $author$project$Twigen$Tadousi) || _Utils_eq(syurui, $author$project$Twigen$Ryouhou);
+			},
+			model.dousi));
 };
 var $author$project$Twigen$dousiKu = function (model) {
 	var youni = $author$project$Twigen$generatorFromList(
@@ -6521,15 +6538,14 @@ var $author$project$Twigen$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'Roll':
-				return _Utils_Tuple2(
-					model,
+				var command = A2(
+					$elm$random$Random$generate,
+					$author$project$Twigen$NewSentences,
 					A2(
-						$elm$random$Random$generate,
-						$author$project$Twigen$NewSentences,
-						A2(
-							$elm$random$Random$list,
-							10,
-							$author$project$Twigen$sentence(model))));
+						$elm$random$Random$list,
+						10,
+						$author$project$Twigen$sentence(model)));
+				return _Utils_Tuple2(model, command);
 			case 'NewSentences':
 				var newSentences = msg.a;
 				return _Utils_Tuple2(
@@ -6538,70 +6554,36 @@ var $author$project$Twigen$update = F2(
 						{sentences: newSentences}),
 					$elm$core$Platform$Cmd$none);
 			case 'MeisiUpdate':
-				var lines = msg.a;
+				var list = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{
-							meisi: A2($elm$core$String$split, '\n', lines)
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'SahenJidousiUpdate':
-				var lines = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							sahenJidousi: A2($elm$core$String$split, '\n', lines)
-						}),
-					$elm$core$Platform$Cmd$none);
-			case 'SahenTadousiUpdate':
-				var lines = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							sahenTadousi: A2($elm$core$String$split, '\n', lines)
-						}),
+						{meisi: list}),
 					$elm$core$Platform$Cmd$none);
 			case 'KeiyousiUpdate':
-				var lines = msg.a;
+				var list = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{
-							keiyousi: A2($elm$core$String$split, '\n', lines)
-						}),
+						{keiyousi: list}),
 					$elm$core$Platform$Cmd$none);
-			case 'TuikaSetteiUpdate':
-				var settei = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{tuikaSettei: settei}),
-					$elm$core$Platform$Cmd$none);
-			default:
+			case 'DousiUpdate':
 				var list = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{dousi: list}),
 					$elm$core$Platform$Cmd$none);
+			default:
+				var settei = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{tuikaSettei: settei}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Twigen$KeiyousiUpdate = function (a) {
-	return {$: 'KeiyousiUpdate', a: a};
-};
-var $author$project$Twigen$MeisiUpdate = function (a) {
-	return {$: 'MeisiUpdate', a: a};
-};
 var $author$project$Twigen$Roll = {$: 'Roll'};
-var $author$project$Twigen$SahenJidousiUpdate = function (a) {
-	return {$: 'SahenJidousiUpdate', a: a};
-};
-var $author$project$Twigen$SahenTadousiUpdate = function (a) {
-	return {$: 'SahenTadousiUpdate', a: a};
-};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Twigen$DousiUpdate = function (a) {
@@ -6764,7 +6746,26 @@ var $author$project$Twigen$katuyoukeiSettei = F2(
 				settei,
 				{katuyoukei: katuyoukei}));
 	});
+var $author$project$Twigen$KeiyousiUpdate = function (a) {
+	return {$: 'KeiyousiUpdate', a: a};
+};
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $author$project$Twigen$keiyousiKousin = A2(
+	$elm$core$Basics$composeR,
+	$elm$core$String$split('\n'),
+	$author$project$Twigen$KeiyousiUpdate);
 var $elm$html$Html$li = _VirtualDom_node('li');
+var $author$project$Twigen$MeisiUpdate = function (a) {
+	return {$: 'MeisiUpdate', a: a};
+};
+var $author$project$Twigen$meisiKousin = A2(
+	$elm$core$Basics$composeR,
+	$elm$core$String$split('\n'),
+	$author$project$Twigen$MeisiUpdate);
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6908,7 +6909,7 @@ var $author$project$Twigen$view = function (model) {
 									[
 										$elm$html$Html$Attributes$value(
 										A2($elm$core$String$join, '\n', model.meisi)),
-										$elm$html$Html$Events$onInput($author$project$Twigen$MeisiUpdate),
+										$elm$html$Html$Events$onInput($author$project$Twigen$meisiKousin),
 										A2($elm$html$Html$Attributes$style, 'resize', 'none')
 									]),
 								_List_Nil)
@@ -6923,65 +6924,19 @@ var $author$project$Twigen$view = function (model) {
 								_List_Nil,
 								_List_fromArray(
 									[
-										$elm$html$Html$text('サ変名詞(自動詞)')
+										$elm$html$Html$text('形容詞')
 									])),
 								A2(
 								$elm$html$Html$textarea,
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$value(
-										A2($elm$core$String$join, '\n', model.sahenJidousi)),
-										$elm$html$Html$Events$onInput($author$project$Twigen$SahenJidousiUpdate),
-										A2($elm$html$Html$Attributes$style, 'resize', 'none')
-									]),
-								_List_Nil)
-							])),
-						A2(
-						$elm$html$Html$div,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$h3,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('サ変名詞(他動詞)')
-									])),
-								A2(
-								$elm$html$Html$textarea,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$value(
-										A2($elm$core$String$join, '\n', model.sahenTadousi)),
-										$elm$html$Html$Events$onInput($author$project$Twigen$SahenTadousiUpdate),
+										A2($elm$core$String$join, '\n', model.keiyousi)),
+										$elm$html$Html$Events$onInput($author$project$Twigen$keiyousiKousin),
 										A2($elm$html$Html$Attributes$style, 'resize', 'none')
 									]),
 								_List_Nil)
 							]))
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$h3,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('形容詞')
-							])),
-						A2(
-						$elm$html$Html$textarea,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$value(
-								A2($elm$core$String$join, '\n', model.keiyousi)),
-								$elm$html$Html$Events$onInput($author$project$Twigen$KeiyousiUpdate),
-								A2($elm$html$Html$Attributes$style, 'resize', 'none')
-							]),
-						_List_Nil)
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7106,11 +7061,71 @@ var $author$project$Twigen$view = function (model) {
 								$elm$html$Html$option,
 								_List_fromArray(
 									[
+										$elm$html$Html$Attributes$value('さ')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('さ行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('た')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('た行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('な')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('な行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
 										$elm$html$Html$Attributes$value('ば')
 									]),
 								_List_fromArray(
 									[
 										$elm$html$Html$text('ば行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('ま')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('ま行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('ら')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('ら行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('わ')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('わ行')
 									]))
 							])),
 						A2(
@@ -7151,6 +7166,16 @@ var $author$project$Twigen$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$text('下一')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('さ変格')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('変格')
 									]))
 							])),
 						A2(
