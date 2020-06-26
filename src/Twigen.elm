@@ -7,6 +7,7 @@ import Html.Events exposing (..)
 import Random exposing (Generator, map, map2, map3, lazy)
 
 
+
 main =
     Browser.element
         { init = \() -> init
@@ -22,11 +23,9 @@ main =
 
 type alias Model =
     { sentences : List String
-    , meisi : List String
-    , sahenJidousi : List String
-    , sahenTadousi : List String
+    , meisi : List Meisi
+    , keiyousi : List Keiyousi
     , dousi : List Dousi
-    , keiyousi : List String
     , tuikaSettei : TuikaSettei
     }
 
@@ -45,39 +44,196 @@ type alias TuikaSettei =
 type Msg
     = Roll
     | NewSentences (List String)
-    | MeisiUpdate String
-    | SahenJidousiUpdate String
-    | SahenTadousiUpdate String
-    | KeiyousiUpdate String
-    | TuikaSetteiUpdate TuikaSettei
+    | MeisiUpdate (List String)
+    | KeiyousiUpdate (List String)
     | DousiUpdate (List Dousi)
+    | TuikaSetteiUpdate TuikaSettei
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Roll ->
-            ( model, Random.generate NewSentences <| Random.list 10 (sentence model) )
+            let
+                command =
+                    Random.generate NewSentences
+                        <| Random.list 10
+                        <| sentence model
+            in
+                ( model, command )
 
         NewSentences newSentences ->
             ( { model | sentences = newSentences }, Cmd.none )
-        
-        MeisiUpdate lines ->
-            ( { model | meisi = lines |> String.split "\n" }, Cmd.none )
 
-        SahenJidousiUpdate lines ->
-            ( { model | sahenJidousi = lines |> String.split "\n" }, Cmd.none )
+        MeisiUpdate list ->
+            ( { model | meisi = list }, Cmd.none )
 
-        SahenTadousiUpdate lines ->
-            ( { model | sahenTadousi = lines |> String.split "\n" }, Cmd.none )
+        KeiyousiUpdate list ->
+            ( { model | keiyousi = list }, Cmd.none )
 
-        KeiyousiUpdate lines ->
-            ( { model | keiyousi = lines |> String.split "\n" }, Cmd.none )
+        DousiUpdate list ->
+            ( { model | dousi = list }, Cmd.none )
 
         TuikaSetteiUpdate settei ->
             ( { model | tuikaSettei = settei }, Cmd.none )
-        
-        DousiUpdate list ->
-            ( { model | dousi = list }, Cmd.none )
+
+
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view model =
+    div []
+        [ h1 [][ text "クソツイジェネレータ" ]
+        , ul []
+          (model.sentences
+              |> List.map (\s ->
+                  li[][text s]
+              )
+          )
+        , button [ onClick Roll ] [ text "Roll" ]
+        , div [ Attr.style "display" "flex" ]
+            [ div []
+                [ h3 [][ text <| "名詞" ]
+                , textarea
+                    [ Attr.value <| (model.meisi |> String.join "\n")
+                    , onInput meisiKousin
+                    , Attr.style "resize" "none"
+                    ][]
+                ]
+            , div []
+                [ h3 [][ text <| "形容詞" ]
+                , textarea
+                    [ Attr.value <| (model.keiyousi |> String.join "\n")
+                    , onInput keiyousiKousin
+                    , Attr.style "resize" "none"
+                    ][]
+                ]
+            ]
+        , div []
+            [ h3 [][ text <| "動詞" ]
+            , table []
+                [ tbody
+                    [ Attr.style "overflow-y" "scroll"
+                    , Attr.style "display" "block"
+                    , Attr.style "height" "100px"
+                    ]
+                    ( model.dousi
+                        |> List.indexedMap (\i (Dousi gokan katuyou syurui) ->
+                            tr []
+                                [ td [][ text <| gokan ]
+                                , td [][ text <| katuyouToString katuyou ]
+                                , td [][ text <| dousiSyuruiToString <| syurui ]
+                                , td []
+                                    [ button
+                                        [ onClick <| dousiSakujo i model.dousi ]
+                                        [ text <| "削除" ]
+                                    ]
+                                ]
+                        )
+                    )
+                ]
+            , input
+                [ Attr.type_ "text"
+                , onInput <| gokanSettei model.tuikaSettei
+                ][]
+            , select
+                [ onInput <| gyouSettei model.tuikaSettei ]
+                [ option [ Attr.value "あ" ][ text <| "あ行" ]
+                , option [ Attr.value "か" ][ text <| "か行" ]
+                , option [ Attr.value "さ" ][ text <| "さ行" ]
+                , option [ Attr.value "た" ][ text <| "た行" ]
+                , option [ Attr.value "な" ][ text <| "な行" ]
+                , option [ Attr.value "ば" ][ text <| "ば行" ]
+                , option [ Attr.value "ま" ][ text <| "ま行" ]
+                , option [ Attr.value "ら" ][ text <| "ら行" ]
+                , option [ Attr.value "わ" ][ text <| "わ行" ]
+                ]
+            , select
+                [ onInput <| katuyoukeiSettei model.tuikaSettei ]
+                [ option [ Attr.value "五段" ][ text <| "五段" ]
+                , option [ Attr.value "上一" ][ text <| "上一" ]
+                , option [ Attr.value "下一" ][ text <| "下一" ]
+                , option [ Attr.value "さ変格" ][ text <| "変格" ]
+                ]
+            , select
+                [ onInput <| syuruiSettei model.tuikaSettei ]
+                [ option [ Attr.value "自動詞" ][ text <| "自動詞" ]
+                , option [ Attr.value "他動詞" ][ text <| "他動詞" ]
+                , option [ Attr.value "両方"   ][ text <| "両方" ]
+                ]
+            , button
+                [ onClick <| dousiTuika model.tuikaSettei model.dousi ]
+                [ text <| "追加" ]
+            ]
+        ]
+
+meisiKousin : String -> Msg
+meisiKousin =
+  String.split "\n"
+    >> MeisiUpdate
+
+keiyousiKousin : String -> Msg
+keiyousiKousin =
+  String.split "\n"
+    >> KeiyousiUpdate
+
+gokanSettei : TuikaSettei -> String -> Msg
+gokanSettei settei gokan =
+    TuikaSetteiUpdate { settei | gokan = gokan }
+
+gyouSettei settei gyou =
+    TuikaSetteiUpdate { settei | gyou = gyou }
+
+katuyoukeiSettei settei katuyoukei =
+    TuikaSetteiUpdate { settei | katuyoukei = katuyoukei }
+
+syuruiSettei settei syurui =
+    TuikaSetteiUpdate { settei | syurui = syurui }
+
+dousiTuika settei list =
+    let
+        dousi_ =
+            Maybe.map2
+            (\k s -> Dousi settei.gokan k s)
+            (katuyouFromString settei.gyou settei.katuyoukei)
+            (dousiSyuruiFromString settei.syurui)
+
+        list_ =
+            case dousi_ of
+                Just d -> d :: list
+                Nothing -> list
+    in
+        DousiUpdate list_
+
+dousiSakujo at list =
+    let
+        help at_ rest result =
+            case ( at_, rest ) of
+                ( 0, hd :: tl ) ->
+                    help (-1) tl result
+
+                ( n, hd :: tl ) ->
+                    help (n - 1) tl (hd :: result)
+
+                _ ->
+                    result |> List.reverse
+    in
+        DousiUpdate <| help at list []
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
+
+
+
+-- TWEET PATTERN DIFINITIONS
 
 
 sentence model =
@@ -106,7 +262,7 @@ dagaomaeha model =
             , c "ワイ"
             , c "私"
             ]
-        
+
         body =
             choice
             [ meisiKu model |> map (\m -> m++"だ")
@@ -172,6 +328,39 @@ haityuu model =
     (meisiKu model)
     (dousiKu model)
 
+
+choice : List (Generator a) -> Generator a
+choice list =
+    case list of
+        [] -> Random.constant <| Debug.todo "Error"
+        hd :: tl -> Random.uniform hd tl |> Random.andThen (\r -> r)  
+
+seq : List (Generator String) -> Generator String
+seq list =
+    case list of
+    [] -> Random.constant ""
+    hd :: tl -> Random.map2 (\hdStr tlStr -> hdStr ++ tlStr) hd (seq tl)
+
+c = Random.constant
+
+
+
+--- SYNTAX
+
+
+type alias Meisi = String
+
+meisi : Model -> Generator String
+meisi model =
+    let
+        sahenMeisi =
+            model.dousi
+                |> List.filter (\(Dousi _ katuyoukei _) -> katuyoukei == Sahen )
+                |> List.map (\(Dousi gokan _ _) -> gokan)
+    in
+        model.meisi ++ sahenMeisi
+            |> generatorFromList
+
 meisiKu : Model -> Generator String
 meisiKu model =
     choice
@@ -192,61 +381,15 @@ meisiKu model =
         (meisi model)
     ]
 
-type alias Meisi = String
-
-type alias DousiKu = ( String, Dousi )
-    
-type alias Huzoku = String
-type alias Hukusi = String
-
-dousiKu : Model -> Generator DousiKu
-dousiKu model =
-    let
-        hukusi =
-            generatorFromList
-            [ "とても"
-            , "非常に"
-            , "みるからに"
-            , "多少は"
-            ]
-            
-        youni =
-            generatorFromList
-            [ "ように" ]
-        
-        jidou =
-             jidousi model |> map (\d -> ("", d))
-        
-        tadou =
-            map2
-            (\m d -> (m++"を", d))
-            (lazy (\_ -> meisiKu model))
-            (tadousi model)
-    in
-        choice
-        [ jidou
-        , jidou -- weight
-        , jidou -- weight
-        , tadou
-        , tadou -- weight
-        , tadou -- weight
-        , map3 -- 動詞の連体形＋「ように」
-            (\dk y d2 -> ( dousiKuRentai dk ++ y, d2 ))
-            (lazy (\_ -> dousiKu model))
-            youni
-            (jidousi model)
-        , map2 -- 形容詞の連用形
-            (\k ( s, d ) -> ( keiyousiRenyou2 k ++ s, d ))
-            (lazy (\_ -> keiyousiGokan model))
-            (lazy (\_ -> dousiKu model))
-        , map2 -- 副詞
-            (\h ( s, d ) -> ( h++s, d ))
-            hukusi
-            (lazy (\_ -> dousiKu model))
-        ]
 
 type alias Keiyousi = String
-type alias Jodousi = String
+
+keiyousi : Model -> Generator KeiyousiGokan
+keiyousi model =
+    generatorFromList model.keiyousi
+        |> map KeiyousiGokan
+
+type KeiyousiGokan = KeiyousiGokan String
 
 keiyousiGokan : Model -> Generator KeiyousiGokan
 keiyousiGokan model =
@@ -256,7 +399,7 @@ keiyousiGokan model =
             [ "っぽ"
             , "らし"
             ]
-        
+
         nikui =
             generatorFromList
             [ "難"
@@ -281,45 +424,28 @@ keiyousiGokan model =
             (keiyousi model)
         ]
 
-meisi : Model -> Generator String
-meisi model =
-    generatorFromList
-    ( model.meisi
-    ++model.sahenJidousi
-    ++model.sahenTadousi
-    )
-
-tadousi : Model -> Generator Dousi
-tadousi model =
+keiyousiKatuyou : Katuyoukei -> KeiyousiGokan -> String
+keiyousiKatuyou katuyoukei (KeiyousiGokan gokan) =
     let
-        sahenDousi =
-            model.sahenTadousi
-                |> List.map (\gokan -> Dousi gokan Sahen Tadousi)
-        
-        others =
-            model.dousi
-                |> List.filter (\(Dousi _ _ syurui) -> syurui == Tadousi || syurui == Ryouhou)
+        gobi =
+            case katuyoukei of
+                Mizen   -> "かろ"
+                Renyou1 -> "かっ"
+                Renyou2 -> "く"
+                Syuusi  -> "い"
+                Rentai  -> "い"
+                Katei   -> "けれ"
+                Meirei  -> "Error"
     in
-        generatorFromList
-        ( sahenDousi
-        ++others
-        )
+        gokan ++ gobi
 
-jidousi : Model -> Generator Dousi
-jidousi model =
-    let
-        sahenDousi =
-            model.sahenJidousi
-                |> List.map (\gokan -> Dousi gokan Sahen Jidousi)
-        
-        others =
-            model.dousi
-                |> List.filter (\(Dousi _ _ syurui) -> syurui == Jidousi || syurui == Ryouhou)
-    in
-        generatorFromList
-        ( sahenDousi
-        ++others
-        )
+keiyousiMizenn  = keiyousiKatuyou Mizen
+keiyousiRenyou1 = keiyousiKatuyou Renyou1
+keiyousiRenyou2 = keiyousiKatuyou Renyou2
+keiyousiSyuusi  = keiyousiKatuyou Syuusi
+keiyousiRentai  = keiyousiKatuyou Rentai
+keiyousiKatei   = keiyousiKatuyou Katei
+
 
 type Dousi =
     Dousi String Katuyou DousiSyurui
@@ -363,6 +489,117 @@ dousiSyuruiFromString syurui =
         "両方"   -> Ryouhou |> Just
         _ -> Nothing
 
+jidousi : Model -> Generator Dousi
+jidousi model =
+    model.dousi
+        |> List.filter (\(Dousi _ _ syurui) ->
+            syurui == Jidousi || syurui == Ryouhou)
+        |> generatorFromList
+
+tadousi : Model -> Generator Dousi
+tadousi model =
+    model.dousi
+        |> List.filter (\(Dousi _ _ syurui) ->
+            syurui == Tadousi || syurui == Ryouhou)
+        |> generatorFromList
+
+type alias DousiKu = ( String, Dousi )
+
+dousiKu : Model -> Generator DousiKu
+dousiKu model =
+    let
+        hukusi =
+            generatorFromList
+            [ "とても"
+            , "非常に"
+            , "みるからに"
+            , "多少は"
+            ]
+
+        youni =
+            generatorFromList
+            [ "ように" ]
+
+        jidou =
+             jidousi model |> map (\d -> ("", d))
+
+        tadou =
+            map2
+            (\m d -> (m++"を", d))
+            (lazy (\_ -> meisiKu model))
+            (tadousi model)
+    in
+        choice
+        [ jidou
+        , jidou -- weight
+        , jidou -- weight
+        , tadou
+        , tadou -- weight
+        , tadou -- weight
+        , map3 -- 動詞の連体形＋「ように」
+            (\dk y d2 -> ( dousiKuRentai dk ++ y, d2 ))
+            (lazy (\_ -> dousiKu model))
+            youni
+            (jidousi model)
+        , map2 -- 形容詞の連用形
+            (\k ( s, d ) -> ( keiyousiRenyou2 k ++ s, d ))
+            (lazy (\_ -> keiyousiGokan model))
+            (lazy (\_ -> dousiKu model))
+        , map2 -- 副詞
+            (\h ( s, d ) -> ( h++s, d ))
+            hukusi
+            (lazy (\_ -> dousiKu model))
+        ]
+
+type Katuyoukei
+    = Mizen
+    | Renyou1
+    | Renyou2
+    | Syuusi
+    | Rentai
+    | Katei
+    | Meirei
+
+dousiKatuyou : Katuyoukei -> Dousi -> String
+dousiKatuyou katuyoukei dousi =
+    let
+        (Dousi gokan katuyou _) =
+            dousi
+        (Katuyougobi mizen ( renyou1, renyou2 ) syuusi rentai katei meirei) =
+            katuyougobi katuyou
+
+        gobi =
+            case katuyoukei of
+                Mizen -> mizen
+                Renyou1 -> renyou1
+                Renyou2 -> renyou2
+                Syuusi -> syuusi
+                Rentai -> rentai
+                Katei -> katei
+                Meirei -> meirei
+    in
+        gokan ++ gobi
+
+dousiMizen   = dousiKatuyou Mizen
+dousiRenyou1 = dousiKatuyou Renyou1
+dousiRenyou2 = dousiKatuyou Renyou2
+dousiSyuusi  = dousiKatuyou Syuusi
+dousiRentai  = dousiKatuyou Rentai
+dousiKatei   = dousiKatuyou Katei
+dousiMeirei  = dousiKatuyou Meirei
+
+dousiKuKatuyou : Katuyoukei -> ( String, Dousi ) -> String
+dousiKuKatuyou katuyoukei ( syuusyoku, dousi ) =
+    syuusyoku ++ dousiKatuyou katuyoukei dousi
+
+dousiKuMizen   = dousiKuKatuyou Mizen
+dousiKuRenyou1 = dousiKuKatuyou Renyou1
+dousiKuRenyou2 = dousiKuKatuyou Renyou2
+dousiKuSyuusi  = dousiKuKatuyou Syuusi
+dousiKuRentai  = dousiKuKatuyou Rentai
+dousiKuKatei   = dousiKuKatuyou Katei
+dousiKuMeirei  = dousiKuKatuyou Meirei
+
 type Katuyougobi =
     Katuyougobi String ( String, String ) String String String  String
 
@@ -389,98 +626,6 @@ katuyougobi katuyou =
         Sahen      -> Katuyougobi "し" ( "し", "し" ) "する" "する" "すれ" "せよ"
         _          -> Katuyougobi "Error" ( "Error", "Error" ) "Error" "Error" "Error" "Error"
 
-type Katuyoukei
-    = Mizen
-    | Renyou1
-    | Renyou2
-    | Syuusi
-    | Rentai
-    | Katei
-    | Meirei
-
-dousiKatuyou : Katuyoukei -> Dousi -> String 
-dousiKatuyou katuyoukei dousi =
-    let
-        (Dousi gokan katuyou _) =
-            dousi
-        (Katuyougobi mizen ( renyou1, renyou2 ) syuusi rentai katei meirei) =
-            katuyougobi katuyou
-        
-        gobi =
-            case katuyoukei of
-                Mizen -> mizen
-                Renyou1 -> renyou1
-                Renyou2 -> renyou2
-                Syuusi -> syuusi
-                Rentai -> rentai
-                Katei -> katei
-                Meirei -> meirei
-    in
-        gokan ++ gobi
-
-dousiMizen   = dousiKatuyou Mizen
-dousiRenyou1 = dousiKatuyou Renyou1
-dousiRenyou2 = dousiKatuyou Renyou2
-dousiSyuusi  = dousiKatuyou Syuusi
-dousiRentai  = dousiKatuyou Rentai
-dousiKatei   = dousiKatuyou Katei
-dousiMeirei  = dousiKatuyou Meirei
-
-dousiKuKatuyou : Katuyoukei -> ( String, Dousi ) -> String
-dousiKuKatuyou katuyoukei ( syuusyoku, dousi ) =
-    syuusyoku ++ dousiKatuyou katuyoukei dousi       
-
-dousiKuMizen   = dousiKuKatuyou Mizen
-dousiKuRenyou1 = dousiKuKatuyou Renyou1
-dousiKuRenyou2 = dousiKuKatuyou Renyou2
-dousiKuSyuusi  = dousiKuKatuyou Syuusi
-dousiKuRentai  = dousiKuKatuyou Rentai
-dousiKuKatei   = dousiKuKatuyou Katei
-dousiKuMeirei  = dousiKuKatuyou Meirei
-
-type KeiyousiGokan = KeiyousiGokan String
-
-keiyousi : Model -> Generator KeiyousiGokan
-keiyousi model =
-    generatorFromList model.keiyousi
-        |> map KeiyousiGokan
-
-keiyousiKatuyou : Katuyoukei -> KeiyousiGokan -> String
-keiyousiKatuyou katuyoukei (KeiyousiGokan gokan) =
-    let
-        gobi =
-            case katuyoukei of
-                Mizen   -> "かろ"
-                Renyou1 -> "かっ"
-                Renyou2 -> "く"
-                Syuusi  -> "い"
-                Rentai  -> "い"
-                Katei   -> "けれ"
-                Meirei  -> "Error"
-    in
-        gokan ++ gobi
-
-keiyousiMizenn  = keiyousiKatuyou Mizen
-keiyousiRenyou1 = keiyousiKatuyou Renyou1
-keiyousiRenyou2 = keiyousiKatuyou Renyou2
-keiyousiSyuusi  = keiyousiKatuyou Syuusi
-keiyousiRentai  = keiyousiKatuyou Rentai
-keiyousiKatei   = keiyousiKatuyou Katei
-
-c = Random.constant
-
-choice : List (Generator a) -> Generator a
-choice list =
-    case list of
-        [] -> Random.constant <| Debug.todo "Error"
-        hd :: tl -> Random.uniform hd tl |> Random.andThen (\r -> r)  
-
-seq : List (Generator String) -> Generator String
-seq list =
-    case list of
-    [] -> Random.constant ""
-    hd :: tl -> Random.map2 (\hdStr tlStr -> hdStr ++ tlStr) hd (seq tl)
-
 generatorFromList : List a -> Generator a
 generatorFromList list =
     case list of
@@ -488,152 +633,7 @@ generatorFromList list =
         hd :: tl -> Random.uniform hd tl
 
 
-
--- VIEW
-
-
-view : Model -> Html Msg
-view model =
-    div []
-        [ h1 [][ text "クソツイジェネレータ" ]
-        , ul []
-          (model.sentences
-              |> List.map (\s ->
-                  li[][text s]
-              )
-          )
-        , button [ onClick Roll ] [ text "Roll" ]
-        , div [ Attr.style "display" "flex" ]
-            [ div []
-                [ h3 [][ text <| "名詞" ]
-                , textarea
-                    [ Attr.value <| (model.meisi |> String.join "\n")
-                    , onInput MeisiUpdate
-                    , Attr.style "resize" "none"
-                    ][]
-                ]
-            , div []
-                [ h3 [][ text <| "サ変名詞(自動詞)" ]
-                , textarea
-                    [ Attr.value <| (model.sahenJidousi |> String.join "\n")
-                    , onInput SahenJidousiUpdate
-                    , Attr.style "resize" "none"
-                    ][]
-                ]
-            , div []
-                [ h3 [][ text <| "サ変名詞(他動詞)" ]
-                , textarea
-                    [ Attr.value <| (model.sahenTadousi |> String.join "\n")
-                    , onInput SahenTadousiUpdate
-                    , Attr.style "resize" "none"
-                    ][]
-                ]
-            ]
-        , div []
-            [ h3 [][ text <| "形容詞" ]
-            , textarea
-                [ Attr.value <| (model.keiyousi |> String.join "\n")
-                , onInput KeiyousiUpdate
-                , Attr.style "resize" "none"
-                ][]
-            ]
-        , div []
-            [ h3 [][ text <| "動詞" ]
-            , table []
-                [ tbody
-                    [ Attr.style "overflow-y" "scroll"
-                    , Attr.style "display" "block"
-                    , Attr.style "height" "100px"
-                    ]
-                    ( model.dousi
-                        |> List.indexedMap (\i (Dousi gokan katuyou syurui) ->
-                            tr []
-                                [ td [][ text <| gokan ]
-                                , td [][ text <| katuyouToString katuyou ]
-                                , td [][ text <| dousiSyuruiToString <| syurui ]
-                                , td []
-                                    [ button
-                                        [ onClick <| dousiSakujo i model.dousi ]
-                                        [ text <| "削除" ]
-                                    ]
-                                ]
-                        )
-                    )
-                ]
-            , input
-                [ Attr.type_ "text"
-                , onInput <| gokanSettei model.tuikaSettei
-                ][]
-            , select
-                [ onInput <| gyouSettei model.tuikaSettei ]
-                [ option [ Attr.value "あ" ][ text <| "あ行" ]
-                , option [ Attr.value "か" ][ text <| "か行" ]
-                , option [ Attr.value "ば" ][ text <| "ば行" ]
-                ]
-            , select
-                [ onInput <| katuyoukeiSettei model.tuikaSettei ]
-                [ option [ Attr.value "五段" ][ text <| "五段" ]
-                , option [ Attr.value "上一" ][ text <| "上一" ]
-                , option [ Attr.value "下一" ][ text <| "下一" ]
-                ]
-            , select
-                [ onInput <| syuruiSettei model.tuikaSettei ]
-                [ option [ Attr.value "自動詞" ][ text <| "自動詞" ]
-                , option [ Attr.value "他動詞" ][ text <| "他動詞" ]
-                , option [ Attr.value "両方"   ][ text <| "両方" ]
-                ]
-            , button
-                [ onClick <| dousiTuika model.tuikaSettei model.dousi ]
-                [ text <| "追加" ]
-            ]
-        ]
-
-gokanSettei : TuikaSettei -> String -> Msg
-gokanSettei settei gokan =
-    TuikaSetteiUpdate { settei | gokan = gokan }
-
-gyouSettei settei gyou =
-    TuikaSetteiUpdate { settei | gyou = gyou }
-    
-katuyoukeiSettei settei katuyoukei =
-    TuikaSetteiUpdate { settei | katuyoukei = katuyoukei }
-
-syuruiSettei settei syurui =
-    TuikaSetteiUpdate { settei | syurui = syurui }
-
-dousiTuika settei list =
-    let
-        dousi_ =
-            Maybe.map2
-            (\k s -> Dousi settei.gokan k s)
-            (katuyouFromString settei.gyou settei.katuyoukei)
-            (dousiSyuruiFromString settei.syurui)
-        
-        list_ =
-            case dousi_ of
-                Just d -> d :: list
-                Nothing -> list
-    in
-        DousiUpdate list_
-
-dousiSakujo at list =
-    let
-        help at_ rest result =
-            case ( at_, rest ) of
-                ( 0, hd :: tl ) ->
-                    help (-1) tl result
-            
-                ( n, hd :: tl ) ->
-                    help (n - 1) tl (hd :: result)
-
-                _ ->
-                    result |> List.reverse
-    in
-        DousiUpdate <| help at list []
-
-
-
--- Init
+-- INIT
 
 
 init : ( Model, Cmd Msg )
@@ -668,20 +668,6 @@ init =
             , "単位"
             , "人生"
             , "オタク"
-            ]
-        , sahenTadousi =
-            [ "待望"
-            , "強要"
-            , "報告"
-            , "実装"
-            , "連想"
-            ]
-        , sahenJidousi =
-            [ "筋トレ"
-            , "配信"
-            , "開発"
-            , "崩壊"
-            , "エンジョイ"
             ]
         , keiyousi =
             [ "美し"
@@ -733,7 +719,22 @@ init =
             , Dousi "落と" <| Godan "さ"
             , Dousi "叩" <| Godan "か"
             ] |> List.map (\f -> f Tadousi))
-
+            ++
+            ([ "筋トレ"
+            , "崩壊"
+            ] |> List.map (\gokan -> Dousi gokan Sahen Jidousi))
+            ++
+            ([ "待望"
+            , "強要"
+            , "報告"
+            , "実装"
+            , "連想"
+            ] |> List.map (\gokan -> Dousi gokan Sahen Tadousi))
+            ++
+            (["配信"
+            , "開発"
+            , "エンジョイ"
+            ] |> List.map (\gokan -> Dousi gokan Sahen Ryouhou))
         , tuikaSettei =
             { gokan = ""
             , gyou = "あ"
@@ -743,12 +744,3 @@ init =
         }
     , Cmd.none
     )
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
