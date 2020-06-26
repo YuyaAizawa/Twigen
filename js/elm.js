@@ -5643,8 +5643,8 @@ var $author$project$Twigen$choice = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 335, column: 34},
-					end: {line: 335, column: 44}
+					start: {line: 339, column: 34},
+					end: {line: 339, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -5667,7 +5667,7 @@ var $author$project$Twigen$Katuyougobi = F6(
 		return {$: 'Katuyougobi', a: a, b: b, c: c, d: d, e: e, f: f};
 	});
 var $author$project$Twigen$katuyougobi = function (katuyou) {
-	_v0$18:
+	_v0$30:
 	while (true) {
 		switch (katuyou.$) {
 			case 'Godan':
@@ -5754,11 +5754,29 @@ var $author$project$Twigen$katuyougobi = function (katuyou) {
 							'え',
 							'え');
 					default:
-						break _v0$18;
+						break _v0$30;
 				}
 			case 'Kami':
 				switch (katuyou.a) {
-					case 'き':
+					case '':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'',
+							_Utils_Tuple2('', ''),
+							'る',
+							'る',
+							'れ',
+							'ろ');
+					case 'あ':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'い',
+							_Utils_Tuple2('い', 'い'),
+							'いる',
+							'いる',
+							'いれ',
+							'いろ');
+					case 'か':
 						return A6(
 							$author$project$Twigen$Katuyougobi,
 							'き',
@@ -5767,6 +5785,24 @@ var $author$project$Twigen$katuyougobi = function (katuyou) {
 							'きる',
 							'きれ',
 							'きろ');
+					case 'が':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'ぎ',
+							_Utils_Tuple2('ぎ', 'ぎ'),
+							'ぎる',
+							'ぎる',
+							'ぎれ',
+							'ぎろ');
+					case 'ざ':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'じ',
+							_Utils_Tuple2('じ', 'じ'),
+							'じる',
+							'じる',
+							'じれ',
+							'じろ');
 					case 'た':
 						return A6(
 							$author$project$Twigen$Katuyougobi,
@@ -5776,8 +5812,35 @@ var $author$project$Twigen$katuyougobi = function (katuyou) {
 							'ちる',
 							'ちれ',
 							'ちろ');
+					case 'ば':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'び',
+							_Utils_Tuple2('び', 'び'),
+							'びる',
+							'びる',
+							'びれ',
+							'びろ');
+					case 'ま':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'み',
+							_Utils_Tuple2('み', 'み'),
+							'みる',
+							'みる',
+							'みれ',
+							'みろ');
+					case 'ら':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'り',
+							_Utils_Tuple2('り', 'り'),
+							'りる',
+							'りる',
+							'りれ',
+							'りろ');
 					default:
-						break _v0$18;
+						break _v0$30;
 				}
 			case 'Shimo':
 				switch (katuyou.a) {
@@ -5799,6 +5862,15 @@ var $author$project$Twigen$katuyougobi = function (katuyou) {
 							'える',
 							'えれ',
 							'えろ');
+					case 'か':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'け',
+							_Utils_Tuple2('け', 'け'),
+							'ける',
+							'ける',
+							'けれ',
+							'けろ');
 					case 'が':
 						return A6(
 							$author$project$Twigen$Katuyougobi,
@@ -5817,6 +5889,33 @@ var $author$project$Twigen$katuyougobi = function (katuyou) {
 							'せる',
 							'せれ',
 							'せろ');
+					case 'ざ':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'ぜ',
+							_Utils_Tuple2('ぜ', 'ぜ'),
+							'ぜる',
+							'ぜる',
+							'ぜれ',
+							'ぜろ');
+					case 'た':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'て',
+							_Utils_Tuple2('て', 'て'),
+							'てる',
+							'てる',
+							'てれ',
+							'てろ');
+					case 'だ':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'で',
+							_Utils_Tuple2('で', 'で'),
+							'でる',
+							'でる',
+							'でれ',
+							'でろ');
 					case 'ば':
 						return A6(
 							$author$project$Twigen$Katuyougobi,
@@ -5835,8 +5934,17 @@ var $author$project$Twigen$katuyougobi = function (katuyou) {
 							'める',
 							'めれ',
 							'めろ');
+					case 'ら':
+						return A6(
+							$author$project$Twigen$Katuyougobi,
+							'れ',
+							_Utils_Tuple2('れ', 'れ'),
+							'れる',
+							'れる',
+							'れれ',
+							'れろ');
 					default:
-						break _v0$18;
+						break _v0$30;
 				}
 			default:
 				return A6(
@@ -5909,8 +6017,8 @@ var $author$project$Twigen$generatorFromList = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 632, column: 34},
-					end: {line: 632, column: 44}
+					start: {line: 648, column: 34},
+					end: {line: 648, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -7041,6 +7149,16 @@ var $author$project$Twigen$view = function (model) {
 								$elm$html$Html$option,
 								_List_fromArray(
 									[
+										$elm$html$Html$Attributes$value('')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
 										$elm$html$Html$Attributes$value('あ')
 									]),
 								_List_fromArray(
@@ -7061,6 +7179,16 @@ var $author$project$Twigen$view = function (model) {
 								$elm$html$Html$option,
 								_List_fromArray(
 									[
+										$elm$html$Html$Attributes$value('が')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('が行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
 										$elm$html$Html$Attributes$value('さ')
 									]),
 								_List_fromArray(
@@ -7071,11 +7199,31 @@ var $author$project$Twigen$view = function (model) {
 								$elm$html$Html$option,
 								_List_fromArray(
 									[
+										$elm$html$Html$Attributes$value('ざ')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('ざ行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
 										$elm$html$Html$Attributes$value('た')
 									]),
 								_List_fromArray(
 									[
 										$elm$html$Html$text('た行')
+									])),
+								A2(
+								$elm$html$Html$option,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$value('だ')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('だ行')
 									])),
 								A2(
 								$elm$html$Html$option,
