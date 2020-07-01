@@ -4,14 +4,11 @@
   <meta charset="UTF-8">
   <title>ツイートジェネレータ</title>
   <link rel="stylesheet" type="text/css" href="elm.css">
+  <script src="js/elm.js"></script>
 </head>
 <body>
-  <div id="elm-area"></div>
-  <p>code:<a href="https://github.com/YuyaAizawa/Twigen">github.com/YuyaAizawa/Twigen</a></p>
-  <script src="js/elm.js"></script>
   <script>
-    const app = document.getElementById("elm-area")
-    Elm.Twigen.init({ node: app });
+    const app = Elm.Twigen.init();
   </script>
 </body>
 </html>

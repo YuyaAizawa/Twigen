@@ -4438,6 +4438,190 @@ function _Time_getZoneName()
 		callback(_Scheduler_succeed(name));
 	});
 }
+
+
+// BYTES
+
+function _Bytes_width(bytes)
+{
+	return bytes.byteLength;
+}
+
+var _Bytes_getHostEndianness = F2(function(le, be)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(new Uint8Array(new Uint32Array([1]))[0] === 1 ? le : be));
+	});
+});
+
+
+// ENCODERS
+
+function _Bytes_encode(encoder)
+{
+	var mutableBytes = new DataView(new ArrayBuffer($elm$bytes$Bytes$Encode$getWidth(encoder)));
+	$elm$bytes$Bytes$Encode$write(encoder)(mutableBytes)(0);
+	return mutableBytes;
+}
+
+
+// SIGNED INTEGERS
+
+var _Bytes_write_i8  = F3(function(mb, i, n) { mb.setInt8(i, n); return i + 1; });
+var _Bytes_write_i16 = F4(function(mb, i, n, isLE) { mb.setInt16(i, n, isLE); return i + 2; });
+var _Bytes_write_i32 = F4(function(mb, i, n, isLE) { mb.setInt32(i, n, isLE); return i + 4; });
+
+
+// UNSIGNED INTEGERS
+
+var _Bytes_write_u8  = F3(function(mb, i, n) { mb.setUint8(i, n); return i + 1 ;});
+var _Bytes_write_u16 = F4(function(mb, i, n, isLE) { mb.setUint16(i, n, isLE); return i + 2; });
+var _Bytes_write_u32 = F4(function(mb, i, n, isLE) { mb.setUint32(i, n, isLE); return i + 4; });
+
+
+// FLOATS
+
+var _Bytes_write_f32 = F4(function(mb, i, n, isLE) { mb.setFloat32(i, n, isLE); return i + 4; });
+var _Bytes_write_f64 = F4(function(mb, i, n, isLE) { mb.setFloat64(i, n, isLE); return i + 8; });
+
+
+// BYTES
+
+var _Bytes_write_bytes = F3(function(mb, offset, bytes)
+{
+	for (var i = 0, len = bytes.byteLength, limit = len - 4; i <= limit; i += 4)
+	{
+		mb.setUint32(offset + i, bytes.getUint32(i));
+	}
+	for (; i < len; i++)
+	{
+		mb.setUint8(offset + i, bytes.getUint8(i));
+	}
+	return offset + len;
+});
+
+
+// STRINGS
+
+function _Bytes_getStringWidth(string)
+{
+	for (var width = 0, i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		width +=
+			(code < 0x80) ? 1 :
+			(code < 0x800) ? 2 :
+			(code < 0xD800 || 0xDBFF < code) ? 3 : (i++, 4);
+	}
+	return width;
+}
+
+var _Bytes_write_string = F3(function(mb, offset, string)
+{
+	for (var i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		offset +=
+			(code < 0x80)
+				? (mb.setUint8(offset, code)
+				, 1
+				)
+				:
+			(code < 0x800)
+				? (mb.setUint16(offset, 0xC080 /* 0b1100000010000000 */
+					| (code >>> 6 & 0x1F /* 0b00011111 */) << 8
+					| code & 0x3F /* 0b00111111 */)
+				, 2
+				)
+				:
+			(code < 0xD800 || 0xDBFF < code)
+				? (mb.setUint16(offset, 0xE080 /* 0b1110000010000000 */
+					| (code >>> 12 & 0xF /* 0b00001111 */) << 8
+					| code >>> 6 & 0x3F /* 0b00111111 */)
+				, mb.setUint8(offset + 2, 0x80 /* 0b10000000 */
+					| code & 0x3F /* 0b00111111 */)
+				, 3
+				)
+				:
+			(code = (code - 0xD800) * 0x400 + string.charCodeAt(++i) - 0xDC00 + 0x10000
+			, mb.setUint32(offset, 0xF0808080 /* 0b11110000100000001000000010000000 */
+				| (code >>> 18 & 0x7 /* 0b00000111 */) << 24
+				| (code >>> 12 & 0x3F /* 0b00111111 */) << 16
+				| (code >>> 6 & 0x3F /* 0b00111111 */) << 8
+				| code & 0x3F /* 0b00111111 */)
+			, 4
+			);
+	}
+	return offset;
+});
+
+
+// DECODER
+
+var _Bytes_decode = F2(function(decoder, bytes)
+{
+	try {
+		return $elm$core$Maybe$Just(A2(decoder, bytes, 0).b);
+	} catch(e) {
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+var _Bytes_read_i8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getInt8(offset)); });
+var _Bytes_read_i16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getInt16(offset, isLE)); });
+var _Bytes_read_i32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getInt32(offset, isLE)); });
+var _Bytes_read_u8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getUint8(offset)); });
+var _Bytes_read_u16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getUint16(offset, isLE)); });
+var _Bytes_read_u32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getUint32(offset, isLE)); });
+var _Bytes_read_f32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getFloat32(offset, isLE)); });
+var _Bytes_read_f64 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 8, bytes.getFloat64(offset, isLE)); });
+
+var _Bytes_read_bytes = F3(function(len, bytes, offset)
+{
+	return _Utils_Tuple2(offset + len, new DataView(bytes.buffer, bytes.byteOffset + offset, len));
+});
+
+var _Bytes_read_string = F3(function(len, bytes, offset)
+{
+	var string = '';
+	var end = offset + len;
+	for (; offset < end;)
+	{
+		var byte = bytes.getUint8(offset++);
+		string +=
+			(byte < 128)
+				? String.fromCharCode(byte)
+				:
+			((byte & 0xE0 /* 0b11100000 */) === 0xC0 /* 0b11000000 */)
+				? String.fromCharCode((byte & 0x1F /* 0b00011111 */) << 6 | bytes.getUint8(offset++) & 0x3F /* 0b00111111 */)
+				:
+			((byte & 0xF0 /* 0b11110000 */) === 0xE0 /* 0b11100000 */)
+				? String.fromCharCode(
+					(byte & 0xF /* 0b00001111 */) << 12
+					| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+					| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+				)
+				:
+				(byte =
+					((byte & 0x7 /* 0b00000111 */) << 18
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 12
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+						| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+					) - 0x10000
+				, String.fromCharCode(Math.floor(byte / 0x400) + 0xD800, byte % 0x400 + 0xDC00)
+				);
+	}
+	return _Utils_Tuple2(offset, string);
+});
+
+var _Bytes_decodeFailure = F2(function() { throw 0; });
+var $author$project$Twigen$LinkClicked = function (a) {
+	return {$: 'LinkClicked', a: a};
+};
+var $author$project$Twigen$UrlChanged = function (a) {
+	return {$: 'UrlChanged', a: a};
+};
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
@@ -5226,169 +5410,26 @@ var $elm$core$Task$perform = F2(
 			$elm$core$Task$Perform(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
-var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Twigen$Dousi = F3(
-	function (a, b, c) {
-		return {$: 'Dousi', a: a, b: b, c: c};
+var $elm$browser$Browser$application = _Browser_application;
+var $author$project$Twigen$initModel = F2(
+	function (url, key) {
+		return {
+			key: key,
+			sentences: _List_Nil,
+			tango: {dousi: _List_Nil, keiyousi: _List_Nil, meisi: _List_Nil},
+			tuikaSettei: {gokan: '', gyou: '', katuyoukei: '五段', syurui: '自動詞'},
+			url: url
+		};
 	});
-var $author$project$Twigen$Godan = function (a) {
-	return {$: 'Godan', a: a};
-};
-var $author$project$Twigen$Jidousi = {$: 'Jidousi'};
-var $author$project$Twigen$Kami = function (a) {
-	return {$: 'Kami', a: a};
-};
-var $author$project$Twigen$Ryouhou = {$: 'Ryouhou'};
-var $author$project$Twigen$Sahen = {$: 'Sahen'};
-var $author$project$Twigen$Shimo = function (a) {
-	return {$: 'Shimo', a: a};
-};
-var $author$project$Twigen$Tadousi = {$: 'Tadousi'};
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $author$project$Twigen$init = _Utils_Tuple2(
-	{
-		dousi: _Utils_ap(
+var $author$project$Twigen$init = F3(
+	function (_v0, url, key) {
+		return _Utils_Tuple2(
+			A2($author$project$Twigen$initModel, url, key),
 			A2(
-				$elm$core$List$map,
-				function (f) {
-					return f($author$project$Twigen$Jidousi);
-				},
-				_List_fromArray(
-					[
-						A2(
-						$author$project$Twigen$Dousi,
-						'燃',
-						$author$project$Twigen$Shimo('あ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'生',
-						$author$project$Twigen$Kami('か')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'話',
-						$author$project$Twigen$Godan('さ')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'寝',
-						$author$project$Twigen$Shimo('')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'光',
-						$author$project$Twigen$Godan('ら')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'輝',
-						$author$project$Twigen$Godan('か')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'曲が',
-						$author$project$Twigen$Godan('ら')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'歩',
-						$author$project$Twigen$Godan('か')),
-						A2(
-						$author$project$Twigen$Dousi,
-						'落',
-						$author$project$Twigen$Kami('た'))
-					])),
-			_Utils_ap(
-				A2(
-					$elm$core$List$map,
-					function (f) {
-						return f($author$project$Twigen$Tadousi);
-					},
-					_List_fromArray(
-						[
-							A2(
-							$author$project$Twigen$Dousi,
-							'食',
-							$author$project$Twigen$Shimo('ば')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'飲',
-							$author$project$Twigen$Godan('ま')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'買',
-							$author$project$Twigen$Godan('わ')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'見',
-							$author$project$Twigen$Shimo('')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'見',
-							$author$project$Twigen$Shimo('さ')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'書',
-							$author$project$Twigen$Godan('か')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'送',
-							$author$project$Twigen$Godan('ら')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'使',
-							$author$project$Twigen$Godan('わ')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'話',
-							$author$project$Twigen$Godan('さ')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'穿',
-							$author$project$Twigen$Godan('た')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'曲',
-							$author$project$Twigen$Shimo('が')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'攻',
-							$author$project$Twigen$Shimo('ま')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'落と',
-							$author$project$Twigen$Godan('さ')),
-							A2(
-							$author$project$Twigen$Dousi,
-							'叩',
-							$author$project$Twigen$Godan('か'))
-						])),
-				_Utils_ap(
-					A2(
-						$elm$core$List$map,
-						function (gokan) {
-							return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Jidousi);
-						},
-						_List_fromArray(
-							['筋トレ', '崩壊'])),
-					_Utils_ap(
-						A2(
-							$elm$core$List$map,
-							function (gokan) {
-								return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Tadousi);
-							},
-							_List_fromArray(
-								['待望', '強要', '報告', '実装', '連想'])),
-						A2(
-							$elm$core$List$map,
-							function (gokan) {
-								return A3($author$project$Twigen$Dousi, gokan, $author$project$Twigen$Sahen, $author$project$Twigen$Ryouhou);
-							},
-							_List_fromArray(
-								['配信', '開発', 'エンジョイ'])))))),
-		keiyousi: _List_fromArray(
-			['美し', '優し', '賢', '虚し', '怖', '痛', '悲し', '美味し', '醜', '悔し', '可愛', '大き', '長', '若', '深', '遠', '暗', '薄', 'たくまし', '楽し', '激し']),
-		meisi: _List_fromArray(
-			['人', '神', '他人', '人類', '可能性', 'アイドル', '可燃性', '群馬', '年収', '百合', 'メモリ空間', '流動性', 'ＣＰＵ', '化粧品', '生活リズム', 'バナナ', '隠れマルコフモデル', '猫', '筑波大学', '核実験', 'ＡＩ', '薬', '社会', 'ゴリラ', '単位', '人生', 'オタク']),
-		sentences: _List_Nil,
-		tuikaSettei: {gokan: '', gyou: 'あ', katuyoukei: '五段', syurui: '自動詞'}
-	},
-	$elm$core$Platform$Cmd$none);
+				$elm$core$Task$perform,
+				$author$project$Twigen$UrlChanged,
+				$elm$core$Task$succeed(url)));
+	});
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Twigen$subscriptions = function (model) {
@@ -5397,6 +5438,15 @@ var $author$project$Twigen$subscriptions = function (model) {
 var $author$project$Twigen$NewSentences = function (a) {
 	return {$: 'NewSentences', a: a};
 };
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
 };
@@ -5534,6 +5584,10 @@ var $elm$random$Random$list = F2(
 				return A4($elm$random$Random$listHelp, _List_Nil, n, gen, seed);
 			});
 	});
+var $elm$browser$Browser$Navigation$load = _Browser_load;
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $elm$random$Random$andThen = F2(
 	function (callback, _v0) {
 		var genA = _v0.a;
@@ -5643,8 +5697,8 @@ var $author$project$Twigen$choice = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 339, column: 34},
-					end: {line: 339, column: 44}
+					start: {line: 404, column: 34},
+					end: {line: 404, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -6011,21 +6065,24 @@ var $author$project$Twigen$dousiKuKatuyou = F2(
 var $author$project$Twigen$dousiKuRentai = $author$project$Twigen$dousiKuKatuyou($author$project$Twigen$Rentai);
 var $author$project$Twigen$Renyou1 = {$: 'Renyou1'};
 var $author$project$Twigen$dousiKuRenyou1 = $author$project$Twigen$dousiKuKatuyou($author$project$Twigen$Renyou1);
-var $author$project$Twigen$generatorFromList = function (list) {
-	if (!list.b) {
-		return $elm$random$Random$constant(
-			_Debug_todo(
-				'Twigen',
-				{
-					start: {line: 648, column: 34},
-					end: {line: 648, column: 44}
-				})('Error'));
-	} else {
-		var hd = list.a;
-		var tl = list.b;
-		return A2($elm$random$Random$uniform, hd, tl);
-	}
-};
+var $author$project$Twigen$generatorFromList = F2(
+	function (dummy, list) {
+		if (!list.b) {
+			return $elm$random$Random$constant(dummy);
+		} else {
+			var hd = list.a;
+			var tl = list.b;
+			return A2($elm$random$Random$uniform, hd, tl);
+		}
+	});
+var $author$project$Twigen$Jidousi = {$: 'Jidousi'};
+var $author$project$Twigen$Ryouhou = {$: 'Ryouhou'};
+var $author$project$Twigen$Dousi = F3(
+	function (a, b, c) {
+		return {$: 'Dousi', a: a, b: b, c: c};
+	});
+var $author$project$Twigen$Sahen = {$: 'Sahen'};
+var $author$project$Twigen$dummyDousi = A3($author$project$Twigen$Dousi, '○○', $author$project$Twigen$Sahen, $author$project$Twigen$Ryouhou);
 var $elm$core$List$filter = F2(
 	function (isGood, list) {
 		return A3(
@@ -6037,21 +6094,24 @@ var $elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
-var $author$project$Twigen$jidousi = function (model) {
-	return $author$project$Twigen$generatorFromList(
+var $author$project$Twigen$jidousi = function (tango) {
+	return A2(
+		$author$project$Twigen$generatorFromList,
+		$author$project$Twigen$dummyDousi,
 		A2(
 			$elm$core$List$filter,
 			function (_v0) {
 				var syurui = _v0.c;
 				return _Utils_eq(syurui, $author$project$Twigen$Jidousi) || _Utils_eq(syurui, $author$project$Twigen$Ryouhou);
 			},
-			model.dousi));
+			tango.dousi));
 };
-var $author$project$Twigen$keiyousi = function (model) {
+var $author$project$Twigen$dummyKeiyousi = '○○し';
+var $author$project$Twigen$keiyousi = function (tango) {
 	return A2(
 		$elm$random$Random$map,
 		$author$project$Twigen$KeiyousiGokan,
-		$author$project$Twigen$generatorFromList(model.keiyousi));
+		A2($author$project$Twigen$generatorFromList, $author$project$Twigen$dummyKeiyousi, tango.keiyousi));
 };
 var $author$project$Twigen$keiyousiKatuyou = F2(
 	function (katuyoukei, _v0) {
@@ -6125,7 +6185,7 @@ var $elm$random$Random$map3 = F4(
 					seed3);
 			});
 	});
-var $author$project$Twigen$meisi = function (model) {
+var $author$project$Twigen$meisi = function (tango) {
 	var sahenMeisi = A2(
 		$elm$core$List$map,
 		function (_v1) {
@@ -6138,22 +6198,29 @@ var $author$project$Twigen$meisi = function (model) {
 				var katuyoukei = _v0.b;
 				return _Utils_eq(katuyoukei, $author$project$Twigen$Sahen);
 			},
-			model.dousi));
-	return $author$project$Twigen$generatorFromList(
-		_Utils_ap(model.meisi, sahenMeisi));
+			tango.dousi));
+	return A2(
+		$author$project$Twigen$generatorFromList,
+		'○○',
+		_Utils_ap(tango.meisi, sahenMeisi));
 };
-var $author$project$Twigen$tadousi = function (model) {
-	return $author$project$Twigen$generatorFromList(
+var $author$project$Twigen$Tadousi = {$: 'Tadousi'};
+var $author$project$Twigen$tadousi = function (tango) {
+	return A2(
+		$author$project$Twigen$generatorFromList,
+		$author$project$Twigen$dummyDousi,
 		A2(
 			$elm$core$List$filter,
 			function (_v0) {
 				var syurui = _v0.c;
 				return _Utils_eq(syurui, $author$project$Twigen$Tadousi) || _Utils_eq(syurui, $author$project$Twigen$Ryouhou);
 			},
-			model.dousi));
+			tango.dousi));
 };
-var $author$project$Twigen$dousiKu = function (model) {
-	var youni = $author$project$Twigen$generatorFromList(
+var $author$project$Twigen$dousiKu = function (tango) {
+	var youni = A2(
+		$author$project$Twigen$generatorFromList,
+		'',
 		_List_fromArray(
 			['ように']));
 	var tadou = A3(
@@ -6164,16 +6231,18 @@ var $author$project$Twigen$dousiKu = function (model) {
 			}),
 		$elm$random$Random$lazy(
 			function (_v10) {
-				return $author$project$Twigen$meisiKu(model);
+				return $author$project$Twigen$meisiKu(tango);
 			}),
-		$author$project$Twigen$tadousi(model));
+		$author$project$Twigen$tadousi(tango));
 	var jidou = A2(
 		$elm$random$Random$map,
 		function (d) {
 			return _Utils_Tuple2('', d);
 		},
-		$author$project$Twigen$jidousi(model));
-	var hukusi = $author$project$Twigen$generatorFromList(
+		$author$project$Twigen$jidousi(tango));
+	var hukusi = A2(
+		$author$project$Twigen$generatorFromList,
+		'',
 		_List_fromArray(
 			['とても', '非常に', 'みるからに', '多少は']));
 	return $author$project$Twigen$choice(
@@ -6197,10 +6266,10 @@ var $author$project$Twigen$dousiKu = function (model) {
 					}),
 				$elm$random$Random$lazy(
 					function (_v4) {
-						return $author$project$Twigen$dousiKu(model);
+						return $author$project$Twigen$dousiKu(tango);
 					}),
 				youni,
-				$author$project$Twigen$jidousi(model)),
+				$author$project$Twigen$jidousi(tango)),
 				A3(
 				$elm$random$Random$map2,
 				F2(
@@ -6215,11 +6284,11 @@ var $author$project$Twigen$dousiKu = function (model) {
 					}),
 				$elm$random$Random$lazy(
 					function (_v6) {
-						return $author$project$Twigen$keiyousiGokan(model);
+						return $author$project$Twigen$keiyousiGokan(tango);
 					}),
 				$elm$random$Random$lazy(
 					function (_v7) {
-						return $author$project$Twigen$dousiKu(model);
+						return $author$project$Twigen$dousiKu(tango);
 					})),
 				A3(
 				$elm$random$Random$map2,
@@ -6234,24 +6303,28 @@ var $author$project$Twigen$dousiKu = function (model) {
 				hukusi,
 				$elm$random$Random$lazy(
 					function (_v9) {
-						return $author$project$Twigen$dousiKu(model);
+						return $author$project$Twigen$dousiKu(tango);
 					}))
 			]));
 };
-var $author$project$Twigen$keiyousiGokan = function (model) {
-	var ppoi = $author$project$Twigen$generatorFromList(
+var $author$project$Twigen$keiyousiGokan = function (tango) {
+	var ppoi = A2(
+		$author$project$Twigen$generatorFromList,
+		'',
 		_List_fromArray(
 			['っぽ', 'らし']));
-	var nikui = $author$project$Twigen$generatorFromList(
+	var nikui = A2(
+		$author$project$Twigen$generatorFromList,
+		'',
 		_List_fromArray(
 			['難', '辛', 'やす']));
 	return $author$project$Twigen$choice(
 		_List_fromArray(
 			[
-				$author$project$Twigen$keiyousi(model),
-				$author$project$Twigen$keiyousi(model),
-				$author$project$Twigen$keiyousi(model),
-				$author$project$Twigen$keiyousi(model),
+				$author$project$Twigen$keiyousi(tango),
+				$author$project$Twigen$keiyousi(tango),
+				$author$project$Twigen$keiyousi(tango),
+				$author$project$Twigen$keiyousi(tango),
 				A4(
 				$elm$random$Random$map3,
 				F3(
@@ -6259,9 +6332,9 @@ var $author$project$Twigen$keiyousiGokan = function (model) {
 						var k = _v2.a;
 						return $author$project$Twigen$KeiyousiGokan(m + (j + ('く' + k)));
 					}),
-				$author$project$Twigen$meisiKu(model),
+				$author$project$Twigen$meisiKu(tango),
 				ppoi,
-				$author$project$Twigen$keiyousi(model)),
+				$author$project$Twigen$keiyousi(tango)),
 				A4(
 				$elm$random$Random$map3,
 				F3(
@@ -6270,18 +6343,18 @@ var $author$project$Twigen$keiyousiGokan = function (model) {
 						return $author$project$Twigen$KeiyousiGokan(
 							$author$project$Twigen$dousiKuRenyou1(dk) + (n + ('く' + k)));
 					}),
-				$author$project$Twigen$dousiKu(model),
+				$author$project$Twigen$dousiKu(tango),
 				nikui,
-				$author$project$Twigen$keiyousi(model))
+				$author$project$Twigen$keiyousi(tango))
 			]));
 };
-var $author$project$Twigen$meisiKu = function (model) {
+var $author$project$Twigen$meisiKu = function (tango) {
 	return $author$project$Twigen$choice(
 		_List_fromArray(
 			[
-				$author$project$Twigen$meisi(model),
-				$author$project$Twigen$meisi(model),
-				$author$project$Twigen$meisi(model),
+				$author$project$Twigen$meisi(tango),
+				$author$project$Twigen$meisi(tango),
+				$author$project$Twigen$meisi(tango),
 				A3(
 				$elm$random$Random$map2,
 				F2(
@@ -6290,9 +6363,9 @@ var $author$project$Twigen$meisiKu = function (model) {
 					}),
 				$elm$random$Random$lazy(
 					function (_v0) {
-						return $author$project$Twigen$meisiKu(model);
+						return $author$project$Twigen$meisiKu(tango);
 					}),
-				$author$project$Twigen$meisi(model)),
+				$author$project$Twigen$meisi(tango)),
 				A3(
 				$elm$random$Random$map2,
 				F2(
@@ -6301,8 +6374,8 @@ var $author$project$Twigen$meisiKu = function (model) {
 							$author$project$Twigen$keiyousiRentai(k),
 							m);
 					}),
-				$author$project$Twigen$keiyousi(model),
-				$author$project$Twigen$meisi(model)),
+				$author$project$Twigen$keiyousi(tango),
+				$author$project$Twigen$meisi(tango)),
 				A3(
 				$elm$random$Random$map2,
 				F2(
@@ -6313,9 +6386,9 @@ var $author$project$Twigen$meisiKu = function (model) {
 					}),
 				$elm$random$Random$lazy(
 					function (_v1) {
-						return $author$project$Twigen$dousiKu(model);
+						return $author$project$Twigen$dousiKu(tango);
 					}),
-				$author$project$Twigen$meisi(model))
+				$author$project$Twigen$meisi(tango))
 			]));
 };
 var $author$project$Twigen$Syuusi = {$: 'Syuusi'};
@@ -6337,7 +6410,7 @@ var $author$project$Twigen$seq = function (list) {
 			$author$project$Twigen$seq(tl));
 	}
 };
-var $author$project$Twigen$dagaomaeha = function (model) {
+var $author$project$Twigen$dagaomaeha = function (tango) {
 	var ore = $author$project$Twigen$choice(
 		_List_fromArray(
 			[
@@ -6360,15 +6433,15 @@ var $author$project$Twigen$dagaomaeha = function (model) {
 				function (m) {
 					return m + 'だ';
 				},
-				$author$project$Twigen$meisiKu(model)),
+				$author$project$Twigen$meisiKu(tango)),
 				A2(
 				$elm$random$Random$map,
 				$author$project$Twigen$keiyousiSyuusi,
-				$author$project$Twigen$keiyousiGokan(model)),
+				$author$project$Twigen$keiyousiGokan(tango)),
 				A2(
 				$elm$random$Random$map,
 				$author$project$Twigen$dousiKuSyuusi,
-				$author$project$Twigen$dousiKu(model))
+				$author$project$Twigen$dousiKu(tango))
 			]));
 	return $author$project$Twigen$seq(
 		_List_fromArray(
@@ -6384,16 +6457,16 @@ var $author$project$Twigen$dagaomaeha = function (model) {
 var $author$project$Twigen$Mizen = {$: 'Mizen'};
 var $author$project$Twigen$dousiKuMizen = $author$project$Twigen$dousiKuKatuyou($author$project$Twigen$Mizen);
 var $author$project$Twigen$dousiRenyou2 = $author$project$Twigen$dousiKatuyou($author$project$Twigen$Renyou2);
-var $author$project$Twigen$declarative = function (model) {
+var $author$project$Twigen$declarative = function (tango) {
 	var body = $author$project$Twigen$choice(
 		_List_fromArray(
 			[
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('は'),
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$choice(
 						_List_fromArray(
 							[
@@ -6407,30 +6480,30 @@ var $author$project$Twigen$declarative = function (model) {
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('には'),
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('がある')
 					])),
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('は'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$keiyousiSyuusi,
-						$author$project$Twigen$keiyousiGokan(model))
+						$author$project$Twigen$keiyousiGokan(tango))
 					])),
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('は'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiKuSyuusi,
-						$author$project$Twigen$dousiKu(model)),
+						$author$project$Twigen$dousiKu(tango)),
 						$author$project$Twigen$choice(
 						_List_fromArray(
 							[
@@ -6441,12 +6514,12 @@ var $author$project$Twigen$declarative = function (model) {
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('は'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiKuMizen,
-						$author$project$Twigen$dousiKu(model)),
+						$author$project$Twigen$dousiKu(tango)),
 						$author$project$Twigen$c('ない'),
 						$author$project$Twigen$choice(
 						_List_fromArray(
@@ -6458,12 +6531,12 @@ var $author$project$Twigen$declarative = function (model) {
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('を'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiRenyou2,
-						$author$project$Twigen$tadousi(model)),
+						$author$project$Twigen$tadousi(tango)),
 						$author$project$Twigen$c('てはいけない')
 					]))
 			]));
@@ -6504,7 +6577,7 @@ var $author$project$Twigen$declarative = function (model) {
 };
 var $author$project$Twigen$dousiMizen = $author$project$Twigen$dousiKatuyou($author$project$Twigen$Mizen);
 var $author$project$Twigen$dousiSyuusi = $author$project$Twigen$dousiKatuyou($author$project$Twigen$Syuusi);
-var $author$project$Twigen$haityuu = function (model) {
+var $author$project$Twigen$haityuu = function (tango) {
 	return A3(
 		$elm$random$Random$map2,
 		F2(
@@ -6513,74 +6586,74 @@ var $author$project$Twigen$haityuu = function (model) {
 				var d = _v0.b;
 				return s1 + ('は' + (s2 + ($author$project$Twigen$dousiSyuusi(d) + ('場合と' + ($author$project$Twigen$dousiMizen(d) + 'ない場合があるぞい．')))));
 			}),
-		$author$project$Twigen$meisiKu(model),
-		$author$project$Twigen$dousiKu(model));
+		$author$project$Twigen$meisiKu(tango),
+		$author$project$Twigen$dousiKu(tango));
 };
-var $author$project$Twigen$intermittentReference = function (model) {
+var $author$project$Twigen$intermittentReference = function (tango) {
 	return $author$project$Twigen$choice(
 		_List_fromArray(
 			[
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('，'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiKuRenyou1,
-						$author$project$Twigen$dousiKu(model)),
+						$author$project$Twigen$dousiKu(tango)),
 						$author$project$Twigen$c('がち．')
 					])),
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('，'),
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('みがある．')
 					])),
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('，'),
-						$author$project$Twigen$meisi(model),
+						$author$project$Twigen$meisi(tango),
 						$author$project$Twigen$c('じゃん．')
 					]))
 			]));
 };
-var $author$project$Twigen$kimidakeno = function (model) {
+var $author$project$Twigen$kimidakeno = function (tango) {
 	return $author$project$Twigen$seq(
 		_List_fromArray(
 			[
 				$author$project$Twigen$c('君だけの'),
-				$author$project$Twigen$meisi(model),
+				$author$project$Twigen$meisi(tango),
 				$author$project$Twigen$c('を'),
 				A2(
 				$elm$random$Random$map,
 				$author$project$Twigen$dousiRenyou2,
-				$author$project$Twigen$tadousi(model)),
+				$author$project$Twigen$tadousi(tango)),
 				$author$project$Twigen$c('て最強の'),
-				$author$project$Twigen$meisi(model),
+				$author$project$Twigen$meisi(tango),
 				$author$project$Twigen$c('を作り出せ！')
 			]));
 };
 var $author$project$Twigen$Meirei = {$: 'Meirei'};
 var $author$project$Twigen$dousiMeirei = $author$project$Twigen$dousiKatuyou($author$project$Twigen$Meirei);
-var $author$project$Twigen$otherSentence = function (model) {
+var $author$project$Twigen$otherSentence = function (tango) {
 	return $author$project$Twigen$choice(
 		_List_fromArray(
 			[
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('で申し訳ないよ😢')
 					])),
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('のNASA')
 					])),
 				$author$project$Twigen$seq(
@@ -6589,7 +6662,7 @@ var $author$project$Twigen$otherSentence = function (model) {
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$keiyousiSyuusi,
-						$author$project$Twigen$keiyousi(model)),
+						$author$project$Twigen$keiyousi(tango)),
 						$author$project$Twigen$c('いいいいいいいい✌(\'ω\'✌ )三✌(\'ω\')✌三( ✌\'ω\')✌')
 					])),
 				$author$project$Twigen$seq(
@@ -6599,19 +6672,19 @@ var $author$project$Twigen$otherSentence = function (model) {
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiMizen,
-						$author$project$Twigen$tadousi(model)),
+						$author$project$Twigen$tadousi(tango)),
 						$author$project$Twigen$c('れるお前の人生')
 					])),
 				$author$project$Twigen$seq(
 				_List_fromArray(
 					[
 						$author$project$Twigen$c('('),
-						$author$project$Twigen$meisiKu(model),
+						$author$project$Twigen$meisiKu(tango),
 						$author$project$Twigen$c('は'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiMizen,
-						$author$project$Twigen$tadousi(model)),
+						$author$project$Twigen$tadousi(tango)),
 						$author$project$Twigen$c(')ないです')
 					])),
 				$author$project$Twigen$seq(
@@ -6620,28 +6693,1177 @@ var $author$project$Twigen$otherSentence = function (model) {
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$dousiMeirei,
-						$author$project$Twigen$jidousi(model)),
+						$author$project$Twigen$jidousi(tango)),
 						$author$project$Twigen$c('！そなたは'),
 						A2(
 						$elm$random$Random$map,
 						$author$project$Twigen$keiyousiSyuusi,
-						$author$project$Twigen$keiyousi(model))
+						$author$project$Twigen$keiyousi(tango))
 					]))
 			]));
 };
-var $author$project$Twigen$sentence = function (model) {
+var $author$project$Twigen$sentence = function (tango) {
 	return $author$project$Twigen$choice(
 		_List_fromArray(
 			[
-				$author$project$Twigen$intermittentReference(model),
-				$author$project$Twigen$dagaomaeha(model),
-				$author$project$Twigen$declarative(model),
-				$author$project$Twigen$declarative(model),
-				$author$project$Twigen$kimidakeno(model),
-				$author$project$Twigen$haityuu(model),
-				$author$project$Twigen$otherSentence(model)
+				$author$project$Twigen$intermittentReference(tango),
+				$author$project$Twigen$dagaomaeha(tango),
+				$author$project$Twigen$declarative(tango),
+				$author$project$Twigen$declarative(tango),
+				$author$project$Twigen$kimidakeno(tango),
+				$author$project$Twigen$haityuu(tango),
+				$author$project$Twigen$otherSentence(tango)
 			]));
 };
+var $elm$bytes$Bytes$Decode$Decoder = function (a) {
+	return {$: 'Decoder', a: a};
+};
+var $elm$bytes$Bytes$Decode$andThen = F2(
+	function (callback, _v0) {
+		var decodeA = _v0.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v1 = A2(decodeA, bites, offset);
+					var newOffset = _v1.a;
+					var a = _v1.b;
+					var _v2 = callback(a);
+					var decodeB = _v2.a;
+					return A2(decodeB, bites, newOffset);
+				}));
+	});
+var $elm$bytes$Bytes$Encode$getWidth = function (builder) {
+	switch (builder.$) {
+		case 'I8':
+			return 1;
+		case 'I16':
+			return 2;
+		case 'I32':
+			return 4;
+		case 'U8':
+			return 1;
+		case 'U16':
+			return 2;
+		case 'U32':
+			return 4;
+		case 'F32':
+			return 4;
+		case 'F64':
+			return 8;
+		case 'Seq':
+			var w = builder.a;
+			return w;
+		case 'Utf8':
+			var w = builder.a;
+			return w;
+		default:
+			var bs = builder.a;
+			return _Bytes_width(bs);
+	}
+};
+var $elm$bytes$Bytes$LE = {$: 'LE'};
+var $elm$bytes$Bytes$Encode$write = F3(
+	function (builder, mb, offset) {
+		switch (builder.$) {
+			case 'I8':
+				var n = builder.a;
+				return A3(_Bytes_write_i8, mb, offset, n);
+			case 'I16':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_i16,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'I32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_i32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'U8':
+				var n = builder.a;
+				return A3(_Bytes_write_u8, mb, offset, n);
+			case 'U16':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_u16,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'U32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_u32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'F32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_f32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'F64':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_f64,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'Seq':
+				var bs = builder.b;
+				return A3($elm$bytes$Bytes$Encode$writeSequence, bs, mb, offset);
+			case 'Utf8':
+				var s = builder.b;
+				return A3(_Bytes_write_string, mb, offset, s);
+			default:
+				var bs = builder.a;
+				return A3(_Bytes_write_bytes, mb, offset, bs);
+		}
+	});
+var $elm$bytes$Bytes$Encode$writeSequence = F3(
+	function (builders, mb, offset) {
+		writeSequence:
+		while (true) {
+			if (!builders.b) {
+				return offset;
+			} else {
+				var b = builders.a;
+				var bs = builders.b;
+				var $temp$builders = bs,
+					$temp$mb = mb,
+					$temp$offset = A3($elm$bytes$Bytes$Encode$write, b, mb, offset);
+				builders = $temp$builders;
+				mb = $temp$mb;
+				offset = $temp$offset;
+				continue writeSequence;
+			}
+		}
+	});
+var $elm$bytes$Bytes$Decode$decode = F2(
+	function (_v0, bs) {
+		var decoder = _v0.a;
+		return A2(_Bytes_decode, decoder, bs);
+	});
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $author$project$Twigen$dousiSyuruiFromInt = function (i) {
+	switch (i) {
+		case 0:
+			return $elm$core$Maybe$Just($author$project$Twigen$Jidousi);
+		case 1:
+			return $elm$core$Maybe$Just($author$project$Twigen$Tadousi);
+		case 2:
+			return $elm$core$Maybe$Just($author$project$Twigen$Ryouhou);
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$bytes$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$Decoder(_Bytes_decodeFailure);
+var $author$project$Twigen$gyouFromInt = function (i) {
+	switch (i) {
+		case 0:
+			return $elm$core$Maybe$Just('');
+		case 1:
+			return $elm$core$Maybe$Just('あ');
+		case 2:
+			return $elm$core$Maybe$Just('か');
+		case 3:
+			return $elm$core$Maybe$Just('が');
+		case 4:
+			return $elm$core$Maybe$Just('さ');
+		case 5:
+			return $elm$core$Maybe$Just('ざ');
+		case 6:
+			return $elm$core$Maybe$Just('た');
+		case 7:
+			return $elm$core$Maybe$Just('だ');
+		case 8:
+			return $elm$core$Maybe$Just('な');
+		case 9:
+			return $elm$core$Maybe$Just('は');
+		case 10:
+			return $elm$core$Maybe$Just('ば');
+		case 11:
+			return $elm$core$Maybe$Just('ぱ');
+		case 12:
+			return $elm$core$Maybe$Just('ま');
+		case 13:
+			return $elm$core$Maybe$Just('や');
+		case 14:
+			return $elm$core$Maybe$Just('ら');
+		case 15:
+			return $elm$core$Maybe$Just('わ');
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Twigen$Godan = function (a) {
+	return {$: 'Godan', a: a};
+};
+var $author$project$Twigen$Kami = function (a) {
+	return {$: 'Kami', a: a};
+};
+var $author$project$Twigen$Shimo = function (a) {
+	return {$: 'Shimo', a: a};
+};
+var $author$project$Twigen$katuyoukeiSyuruiFromInt = function (i) {
+	switch (i) {
+		case 0:
+			return $elm$core$Maybe$Just($author$project$Twigen$Godan);
+		case 1:
+			return $elm$core$Maybe$Just($author$project$Twigen$Kami);
+		case 2:
+			return $elm$core$Maybe$Just($author$project$Twigen$Shimo);
+		case 3:
+			return $elm$core$Maybe$Just(
+				function (_v1) {
+					return $author$project$Twigen$Sahen;
+				});
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Maybe$map3 = F4(
+	function (func, ma, mb, mc) {
+		if (ma.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 'Nothing') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				if (mc.$ === 'Nothing') {
+					return $elm$core$Maybe$Nothing;
+				} else {
+					var c = mc.a;
+					return $elm$core$Maybe$Just(
+						A3(func, a, b, c));
+				}
+			}
+		}
+	});
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$bytes$Bytes$Decode$succeed = function (a) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		F2(
+			function (_v0, offset) {
+				return _Utils_Tuple2(offset, a);
+			}));
+};
+var $elm$bytes$Bytes$Decode$unsignedInt8 = $elm$bytes$Bytes$Decode$Decoder(_Bytes_read_u8);
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Twigen$gokanIgaiDecoder = function (gokan) {
+	var katuyoukeiSyurui = function (i) {
+		return $author$project$Twigen$katuyoukeiSyuruiFromInt(
+			(A2($elm$core$Basics$modBy, 64, i) / 16) | 0);
+	};
+	var gyou = function (i) {
+		return $author$project$Twigen$gyouFromInt(
+			A2($elm$core$Basics$modBy, 16, i));
+	};
+	var dousiSyurui = function (i) {
+		return $author$project$Twigen$dousiSyuruiFromInt((i / 64) | 0);
+	};
+	var gokanIgai = function (i) {
+		return A4(
+			$elm$core$Maybe$map3,
+			F3(
+				function (g, k, s) {
+					return A3(
+						$author$project$Twigen$Dousi,
+						gokan,
+						k(g),
+						s);
+				}),
+			gyou(i),
+			katuyoukeiSyurui(i),
+			dousiSyurui(i));
+	};
+	return A2(
+		$elm$bytes$Bytes$Decode$andThen,
+		A2(
+			$elm$core$Basics$composeR,
+			gokanIgai,
+			A2(
+				$elm$core$Basics$composeR,
+				$elm$core$Maybe$map($elm$bytes$Bytes$Decode$succeed),
+				$elm$core$Maybe$withDefault($elm$bytes$Bytes$Decode$fail))),
+		$elm$bytes$Bytes$Decode$unsignedInt8);
+};
+var $elm$bytes$Bytes$Decode$string = function (n) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_string(n));
+};
+var $author$project$Twigen$dousiDecoder = A2(
+	$elm$bytes$Bytes$Decode$andThen,
+	$author$project$Twigen$gokanIgaiDecoder,
+	A2($elm$bytes$Bytes$Decode$andThen, $elm$bytes$Bytes$Decode$string, $elm$bytes$Bytes$Decode$unsignedInt8));
+var $elm$bytes$Bytes$Decode$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var $elm$bytes$Bytes$Decode$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var $elm$bytes$Bytes$Decode$loopHelp = F4(
+	function (state, callback, bites, offset) {
+		loopHelp:
+		while (true) {
+			var _v0 = callback(state);
+			var decoder = _v0.a;
+			var _v1 = A2(decoder, bites, offset);
+			var newOffset = _v1.a;
+			var step = _v1.b;
+			if (step.$ === 'Loop') {
+				var newState = step.a;
+				var $temp$state = newState,
+					$temp$callback = callback,
+					$temp$bites = bites,
+					$temp$offset = newOffset;
+				state = $temp$state;
+				callback = $temp$callback;
+				bites = $temp$bites;
+				offset = $temp$offset;
+				continue loopHelp;
+			} else {
+				var result = step.a;
+				return _Utils_Tuple2(newOffset, result);
+			}
+		}
+	});
+var $elm$bytes$Bytes$Decode$loop = F2(
+	function (state, callback) {
+		return $elm$bytes$Bytes$Decode$Decoder(
+			A2($elm$bytes$Bytes$Decode$loopHelp, state, callback));
+	});
+var $elm$bytes$Bytes$Decode$map = F2(
+	function (func, _v0) {
+		var decodeA = _v0.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v1 = A2(decodeA, bites, offset);
+					var aOffset = _v1.a;
+					var a = _v1.b;
+					return _Utils_Tuple2(
+						aOffset,
+						func(a));
+				}));
+	});
+var $author$project$Twigen$list255Decoder = function (decoder) {
+	var listStep = F2(
+		function (decoder_, _v0) {
+			var n = _v0.a;
+			var xs = _v0.b;
+			return (n <= 0) ? $elm$bytes$Bytes$Decode$succeed(
+				$elm$bytes$Bytes$Decode$Done(xs)) : A2(
+				$elm$bytes$Bytes$Decode$map,
+				function (x) {
+					return $elm$bytes$Bytes$Decode$Loop(
+						_Utils_Tuple2(
+							n - 1,
+							A2($elm$core$List$cons, x, xs)));
+				},
+				decoder_);
+		});
+	return A2(
+		$elm$bytes$Bytes$Decode$andThen,
+		function (len) {
+			return A2(
+				$elm$bytes$Bytes$Decode$loop,
+				_Utils_Tuple2(len, _List_Nil),
+				listStep(decoder));
+		},
+		$elm$bytes$Bytes$Decode$unsignedInt8);
+};
+var $author$project$Twigen$stringDecoder = A2($elm$bytes$Bytes$Decode$andThen, $elm$bytes$Bytes$Decode$string, $elm$bytes$Bytes$Decode$unsignedInt8);
+var $author$project$Twigen$tangoFromBytes = function (bytes) {
+	var decoder = A2(
+		$elm$bytes$Bytes$Decode$andThen,
+		function (m) {
+			return A2(
+				$elm$bytes$Bytes$Decode$andThen,
+				function (k) {
+					return A2(
+						$elm$bytes$Bytes$Decode$map,
+						function (d) {
+							return {dousi: d, keiyousi: k, meisi: m};
+						},
+						$author$project$Twigen$list255Decoder($author$project$Twigen$dousiDecoder));
+				},
+				$author$project$Twigen$list255Decoder($author$project$Twigen$stringDecoder));
+		},
+		$author$project$Twigen$list255Decoder($author$project$Twigen$stringDecoder));
+	return A2($elm$bytes$Bytes$Decode$decode, decoder, bytes);
+};
+var $elm$bytes$Bytes$Encode$encode = _Bytes_encode;
+var $elm$bytes$Bytes$BE = {$: 'BE'};
+var $danfishgold$base64_bytes$Encode$isValidChar = function (c) {
+	if ($elm$core$Char$isAlphaNum(c)) {
+		return true;
+	} else {
+		switch (c.valueOf()) {
+			case '+':
+				return true;
+			case '/':
+				return true;
+			default:
+				return false;
+		}
+	}
+};
+var $elm$core$Bitwise$or = _Bitwise_or;
+var $elm$bytes$Bytes$Encode$Seq = F2(
+	function (a, b) {
+		return {$: 'Seq', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$getWidths = F2(
+	function (width, builders) {
+		getWidths:
+		while (true) {
+			if (!builders.b) {
+				return width;
+			} else {
+				var b = builders.a;
+				var bs = builders.b;
+				var $temp$width = width + $elm$bytes$Bytes$Encode$getWidth(b),
+					$temp$builders = bs;
+				width = $temp$width;
+				builders = $temp$builders;
+				continue getWidths;
+			}
+		}
+	});
+var $elm$bytes$Bytes$Encode$sequence = function (builders) {
+	return A2(
+		$elm$bytes$Bytes$Encode$Seq,
+		A2($elm$bytes$Bytes$Encode$getWidths, 0, builders),
+		builders);
+};
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$Basics$ge = _Utils_ge;
+var $danfishgold$base64_bytes$Encode$unsafeConvertChar = function (_char) {
+	var key = $elm$core$Char$toCode(_char);
+	if ((key >= 65) && (key <= 90)) {
+		return key - 65;
+	} else {
+		if ((key >= 97) && (key <= 122)) {
+			return (key - 97) + 26;
+		} else {
+			if ((key >= 48) && (key <= 57)) {
+				return ((key - 48) + 26) + 26;
+			} else {
+				switch (_char.valueOf()) {
+					case '+':
+						return 62;
+					case '/':
+						return 63;
+					default:
+						return -1;
+				}
+			}
+		}
+	}
+};
+var $elm$bytes$Bytes$Encode$U16 = F2(
+	function (a, b) {
+		return {$: 'U16', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$unsignedInt16 = $elm$bytes$Bytes$Encode$U16;
+var $elm$bytes$Bytes$Encode$U8 = function (a) {
+	return {$: 'U8', a: a};
+};
+var $elm$bytes$Bytes$Encode$unsignedInt8 = $elm$bytes$Bytes$Encode$U8;
+var $danfishgold$base64_bytes$Encode$encodeCharacters = F4(
+	function (a, b, c, d) {
+		if ($danfishgold$base64_bytes$Encode$isValidChar(a) && $danfishgold$base64_bytes$Encode$isValidChar(b)) {
+			var n2 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(b);
+			var n1 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(a);
+			if ('=' === d.valueOf()) {
+				if ('=' === c.valueOf()) {
+					var n = (n1 << 18) | (n2 << 12);
+					var b1 = n >> 16;
+					return $elm$core$Maybe$Just(
+						$elm$bytes$Bytes$Encode$unsignedInt8(b1));
+				} else {
+					if ($danfishgold$base64_bytes$Encode$isValidChar(c)) {
+						var n3 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(c);
+						var n = ((n1 << 18) | (n2 << 12)) | (n3 << 6);
+						var combined = n >> 8;
+						return $elm$core$Maybe$Just(
+							A2($elm$bytes$Bytes$Encode$unsignedInt16, $elm$bytes$Bytes$BE, combined));
+					} else {
+						return $elm$core$Maybe$Nothing;
+					}
+				}
+			} else {
+				if ($danfishgold$base64_bytes$Encode$isValidChar(c) && $danfishgold$base64_bytes$Encode$isValidChar(d)) {
+					var n4 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(d);
+					var n3 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(c);
+					var n = ((n1 << 18) | (n2 << 12)) | ((n3 << 6) | n4);
+					var combined = n >> 8;
+					var b3 = n;
+					return $elm$core$Maybe$Just(
+						$elm$bytes$Bytes$Encode$sequence(
+							_List_fromArray(
+								[
+									A2($elm$bytes$Bytes$Encode$unsignedInt16, $elm$bytes$Bytes$BE, combined),
+									$elm$bytes$Bytes$Encode$unsignedInt8(b3)
+								])));
+				} else {
+					return $elm$core$Maybe$Nothing;
+				}
+			}
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
+var $danfishgold$base64_bytes$Encode$encodeChunks = F2(
+	function (input, accum) {
+		encodeChunks:
+		while (true) {
+			var _v0 = $elm$core$String$toList(
+				A2($elm$core$String$left, 4, input));
+			_v0$4:
+			while (true) {
+				if (!_v0.b) {
+					return $elm$core$Maybe$Just(accum);
+				} else {
+					if (_v0.b.b) {
+						if (_v0.b.b.b) {
+							if (_v0.b.b.b.b) {
+								if (!_v0.b.b.b.b.b) {
+									var a = _v0.a;
+									var _v1 = _v0.b;
+									var b = _v1.a;
+									var _v2 = _v1.b;
+									var c = _v2.a;
+									var _v3 = _v2.b;
+									var d = _v3.a;
+									var _v4 = A4($danfishgold$base64_bytes$Encode$encodeCharacters, a, b, c, d);
+									if (_v4.$ === 'Just') {
+										var enc = _v4.a;
+										var $temp$input = A2($elm$core$String$dropLeft, 4, input),
+											$temp$accum = A2($elm$core$List$cons, enc, accum);
+										input = $temp$input;
+										accum = $temp$accum;
+										continue encodeChunks;
+									} else {
+										return $elm$core$Maybe$Nothing;
+									}
+								} else {
+									break _v0$4;
+								}
+							} else {
+								var a = _v0.a;
+								var _v5 = _v0.b;
+								var b = _v5.a;
+								var _v6 = _v5.b;
+								var c = _v6.a;
+								var _v7 = A4(
+									$danfishgold$base64_bytes$Encode$encodeCharacters,
+									a,
+									b,
+									c,
+									_Utils_chr('='));
+								if (_v7.$ === 'Nothing') {
+									return $elm$core$Maybe$Nothing;
+								} else {
+									var enc = _v7.a;
+									return $elm$core$Maybe$Just(
+										A2($elm$core$List$cons, enc, accum));
+								}
+							}
+						} else {
+							var a = _v0.a;
+							var _v8 = _v0.b;
+							var b = _v8.a;
+							var _v9 = A4(
+								$danfishgold$base64_bytes$Encode$encodeCharacters,
+								a,
+								b,
+								_Utils_chr('='),
+								_Utils_chr('='));
+							if (_v9.$ === 'Nothing') {
+								return $elm$core$Maybe$Nothing;
+							} else {
+								var enc = _v9.a;
+								return $elm$core$Maybe$Just(
+									A2($elm$core$List$cons, enc, accum));
+							}
+						}
+					} else {
+						break _v0$4;
+					}
+				}
+			}
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $danfishgold$base64_bytes$Encode$encoder = function (string) {
+	return A2(
+		$elm$core$Maybe$map,
+		A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence),
+		A2($danfishgold$base64_bytes$Encode$encodeChunks, string, _List_Nil));
+};
+var $danfishgold$base64_bytes$Encode$toBytes = function (string) {
+	return A2(
+		$elm$core$Maybe$map,
+		$elm$bytes$Bytes$Encode$encode,
+		$danfishgold$base64_bytes$Encode$encoder(string));
+};
+var $danfishgold$base64_bytes$Base64$toBytes = $danfishgold$base64_bytes$Encode$toBytes;
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$Twigen$uriToBase64 = A2(
+	$elm$core$Basics$composeR,
+	A2($elm$core$String$replace, '*', '+'),
+	A2(
+		$elm$core$Basics$composeR,
+		A2($elm$core$String$replace, '.', '/'),
+		A2($elm$core$String$replace, '-', '=')));
+var $author$project$Twigen$tangoFromQuery = function (query) {
+	return A2(
+		$elm$core$Maybe$andThen,
+		$author$project$Twigen$tangoFromBytes,
+		$danfishgold$base64_bytes$Base64$toBytes(
+			$author$project$Twigen$uriToBase64(query)));
+};
+var $elm$url$Url$addPort = F2(
+	function (maybePort, starter) {
+		if (maybePort.$ === 'Nothing') {
+			return starter;
+		} else {
+			var port_ = maybePort.a;
+			return starter + (':' + $elm$core$String$fromInt(port_));
+		}
+	});
+var $elm$url$Url$addPrefixed = F3(
+	function (prefix, maybeSegment, starter) {
+		if (maybeSegment.$ === 'Nothing') {
+			return starter;
+		} else {
+			var segment = maybeSegment.a;
+			return _Utils_ap(
+				starter,
+				_Utils_ap(prefix, segment));
+		}
+	});
+var $elm$url$Url$toString = function (url) {
+	var http = function () {
+		var _v0 = url.protocol;
+		if (_v0.$ === 'Http') {
+			return 'http://';
+		} else {
+			return 'https://';
+		}
+	}();
+	return A3(
+		$elm$url$Url$addPrefixed,
+		'#',
+		url.fragment,
+		A3(
+			$elm$url$Url$addPrefixed,
+			'?',
+			url.query,
+			_Utils_ap(
+				A2(
+					$elm$url$Url$addPort,
+					url.port_,
+					_Utils_ap(http, url.host)),
+				url.path)));
+};
+var $author$project$Twigen$base64ToUri = A2(
+	$elm$core$Basics$composeR,
+	A2($elm$core$String$replace, '+', '*'),
+	A2(
+		$elm$core$Basics$composeR,
+		A2($elm$core$String$replace, '/', '.'),
+		A2($elm$core$String$replace, '=', '-')));
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $danfishgold$base64_bytes$Decode$lowest6BitsMask = 63;
+var $elm$core$Char$fromCode = _Char_fromCode;
+var $danfishgold$base64_bytes$Decode$unsafeToChar = function (n) {
+	if (n <= 25) {
+		return $elm$core$Char$fromCode(65 + n);
+	} else {
+		if (n <= 51) {
+			return $elm$core$Char$fromCode(97 + (n - 26));
+		} else {
+			if (n <= 61) {
+				return $elm$core$Char$fromCode(48 + (n - 52));
+			} else {
+				switch (n) {
+					case 62:
+						return _Utils_chr('+');
+					case 63:
+						return _Utils_chr('/');
+					default:
+						return _Utils_chr('\u0000');
+				}
+			}
+		}
+	}
+};
+var $danfishgold$base64_bytes$Decode$bitsToChars = F2(
+	function (bits, missing) {
+		var s = $danfishgold$base64_bytes$Decode$unsafeToChar(bits & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var r = $danfishgold$base64_bytes$Decode$unsafeToChar((bits >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var q = $danfishgold$base64_bytes$Decode$unsafeToChar((bits >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var p = $danfishgold$base64_bytes$Decode$unsafeToChar(bits >>> 18);
+		switch (missing) {
+			case 0:
+				return A2(
+					$elm$core$String$cons,
+					p,
+					A2(
+						$elm$core$String$cons,
+						q,
+						A2(
+							$elm$core$String$cons,
+							r,
+							$elm$core$String$fromChar(s))));
+			case 1:
+				return A2(
+					$elm$core$String$cons,
+					p,
+					A2(
+						$elm$core$String$cons,
+						q,
+						A2($elm$core$String$cons, r, '=')));
+			case 2:
+				return A2(
+					$elm$core$String$cons,
+					p,
+					A2($elm$core$String$cons, q, '=='));
+			default:
+				return '';
+		}
+	});
+var $danfishgold$base64_bytes$Decode$bitsToCharSpecialized = F4(
+	function (bits1, bits2, bits3, accum) {
+		var z = $danfishgold$base64_bytes$Decode$unsafeToChar((bits3 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var y = $danfishgold$base64_bytes$Decode$unsafeToChar((bits3 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var x = $danfishgold$base64_bytes$Decode$unsafeToChar(bits3 >>> 18);
+		var w = $danfishgold$base64_bytes$Decode$unsafeToChar(bits3 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var s = $danfishgold$base64_bytes$Decode$unsafeToChar(bits1 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var r = $danfishgold$base64_bytes$Decode$unsafeToChar((bits1 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var q = $danfishgold$base64_bytes$Decode$unsafeToChar((bits1 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var p = $danfishgold$base64_bytes$Decode$unsafeToChar(bits1 >>> 18);
+		var d = $danfishgold$base64_bytes$Decode$unsafeToChar(bits2 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var c = $danfishgold$base64_bytes$Decode$unsafeToChar((bits2 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var b = $danfishgold$base64_bytes$Decode$unsafeToChar((bits2 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var a = $danfishgold$base64_bytes$Decode$unsafeToChar(bits2 >>> 18);
+		return A2(
+			$elm$core$String$cons,
+			x,
+			A2(
+				$elm$core$String$cons,
+				y,
+				A2(
+					$elm$core$String$cons,
+					z,
+					A2(
+						$elm$core$String$cons,
+						w,
+						A2(
+							$elm$core$String$cons,
+							a,
+							A2(
+								$elm$core$String$cons,
+								b,
+								A2(
+									$elm$core$String$cons,
+									c,
+									A2(
+										$elm$core$String$cons,
+										d,
+										A2(
+											$elm$core$String$cons,
+											p,
+											A2(
+												$elm$core$String$cons,
+												q,
+												A2(
+													$elm$core$String$cons,
+													r,
+													A2($elm$core$String$cons, s, accum))))))))))));
+	});
+var $danfishgold$base64_bytes$Decode$decode18Help = F5(
+	function (a, b, c, d, e) {
+		var combined6 = ((255 & d) << 16) | e;
+		var combined5 = d >>> 8;
+		var combined4 = 16777215 & c;
+		var combined3 = ((65535 & b) << 8) | (c >>> 24);
+		var combined2 = ((255 & a) << 16) | (b >>> 16);
+		var combined1 = a >>> 8;
+		return A4(
+			$danfishgold$base64_bytes$Decode$bitsToCharSpecialized,
+			combined3,
+			combined2,
+			combined1,
+			A4($danfishgold$base64_bytes$Decode$bitsToCharSpecialized, combined6, combined5, combined4, ''));
+	});
+var $elm$bytes$Bytes$Decode$map5 = F6(
+	function (func, _v0, _v1, _v2, _v3, _v4) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		var decodeD = _v3.a;
+		var decodeE = _v4.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v5 = A2(decodeA, bites, offset);
+					var aOffset = _v5.a;
+					var a = _v5.b;
+					var _v6 = A2(decodeB, bites, aOffset);
+					var bOffset = _v6.a;
+					var b = _v6.b;
+					var _v7 = A2(decodeC, bites, bOffset);
+					var cOffset = _v7.a;
+					var c = _v7.b;
+					var _v8 = A2(decodeD, bites, cOffset);
+					var dOffset = _v8.a;
+					var d = _v8.b;
+					var _v9 = A2(decodeE, bites, dOffset);
+					var eOffset = _v9.a;
+					var e = _v9.b;
+					return _Utils_Tuple2(
+						eOffset,
+						A5(func, a, b, c, d, e));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$unsignedInt16 = function (endianness) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_u16(
+			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
+};
+var $danfishgold$base64_bytes$Decode$u16BE = $elm$bytes$Bytes$Decode$unsignedInt16($elm$bytes$Bytes$BE);
+var $elm$bytes$Bytes$Decode$unsignedInt32 = function (endianness) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_u32(
+			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
+};
+var $danfishgold$base64_bytes$Decode$u32BE = $elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE);
+var $danfishgold$base64_bytes$Decode$decode18Bytes = A6($elm$bytes$Bytes$Decode$map5, $danfishgold$base64_bytes$Decode$decode18Help, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u16BE);
+var $elm$bytes$Bytes$Decode$map2 = F3(
+	function (func, _v0, _v1) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v2 = A2(decodeA, bites, offset);
+					var aOffset = _v2.a;
+					var a = _v2.b;
+					var _v3 = A2(decodeB, bites, aOffset);
+					var bOffset = _v3.a;
+					var b = _v3.b;
+					return _Utils_Tuple2(
+						bOffset,
+						A2(func, a, b));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$map3 = F4(
+	function (func, _v0, _v1, _v2) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v3 = A2(decodeA, bites, offset);
+					var aOffset = _v3.a;
+					var a = _v3.b;
+					var _v4 = A2(decodeB, bites, aOffset);
+					var bOffset = _v4.a;
+					var b = _v4.b;
+					var _v5 = A2(decodeC, bites, bOffset);
+					var cOffset = _v5.a;
+					var c = _v5.b;
+					return _Utils_Tuple2(
+						cOffset,
+						A3(func, a, b, c));
+				}));
+	});
+var $danfishgold$base64_bytes$Decode$loopHelp = function (_v0) {
+	var remaining = _v0.remaining;
+	var string = _v0.string;
+	if (remaining >= 18) {
+		return A2(
+			$elm$bytes$Bytes$Decode$map,
+			function (result) {
+				return $elm$bytes$Bytes$Decode$Loop(
+					{
+						remaining: remaining - 18,
+						string: _Utils_ap(string, result)
+					});
+			},
+			$danfishgold$base64_bytes$Decode$decode18Bytes);
+	} else {
+		if (remaining >= 3) {
+			var helper = F3(
+				function (a, b, c) {
+					var combined = ((a << 16) | (b << 8)) | c;
+					return $elm$bytes$Bytes$Decode$Loop(
+						{
+							remaining: remaining - 3,
+							string: _Utils_ap(
+								string,
+								A2($danfishgold$base64_bytes$Decode$bitsToChars, combined, 0))
+						});
+				});
+			return A4($elm$bytes$Bytes$Decode$map3, helper, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
+		} else {
+			if (!remaining) {
+				return $elm$bytes$Bytes$Decode$succeed(
+					$elm$bytes$Bytes$Decode$Done(string));
+			} else {
+				if (remaining === 2) {
+					var helper = F2(
+						function (a, b) {
+							var combined = (a << 16) | (b << 8);
+							return $elm$bytes$Bytes$Decode$Done(
+								_Utils_ap(
+									string,
+									A2($danfishgold$base64_bytes$Decode$bitsToChars, combined, 1)));
+						});
+					return A3($elm$bytes$Bytes$Decode$map2, helper, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
+				} else {
+					return A2(
+						$elm$bytes$Bytes$Decode$map,
+						function (a) {
+							return $elm$bytes$Bytes$Decode$Done(
+								_Utils_ap(
+									string,
+									A2($danfishgold$base64_bytes$Decode$bitsToChars, a << 16, 2)));
+						},
+						$elm$bytes$Bytes$Decode$unsignedInt8);
+				}
+			}
+		}
+	}
+};
+var $danfishgold$base64_bytes$Decode$decoder = function (width) {
+	return A2(
+		$elm$bytes$Bytes$Decode$loop,
+		{remaining: width, string: ''},
+		$danfishgold$base64_bytes$Decode$loopHelp);
+};
+var $elm$bytes$Bytes$width = _Bytes_width;
+var $danfishgold$base64_bytes$Decode$fromBytes = function (bytes) {
+	return A2(
+		$elm$bytes$Bytes$Decode$decode,
+		$danfishgold$base64_bytes$Decode$decoder(
+			$elm$bytes$Bytes$width(bytes)),
+		bytes);
+};
+var $danfishgold$base64_bytes$Base64$fromBytes = $danfishgold$base64_bytes$Decode$fromBytes;
+var $elm$bytes$Bytes$Encode$getStringWidth = _Bytes_getStringWidth;
+var $author$project$Twigen$dousiSyuruiToInt = function (syurui) {
+	switch (syurui.$) {
+		case 'Jidousi':
+			return 0;
+		case 'Tadousi':
+			return 1;
+		default:
+			return 2;
+	}
+};
+var $author$project$Twigen$gyouToInt = function (g) {
+	switch (g) {
+		case '':
+			return $elm$core$Maybe$Just(0);
+		case 'あ':
+			return $elm$core$Maybe$Just(1);
+		case 'か':
+			return $elm$core$Maybe$Just(2);
+		case 'が':
+			return $elm$core$Maybe$Just(3);
+		case 'さ':
+			return $elm$core$Maybe$Just(4);
+		case 'ざ':
+			return $elm$core$Maybe$Just(5);
+		case 'た':
+			return $elm$core$Maybe$Just(6);
+		case 'だ':
+			return $elm$core$Maybe$Just(7);
+		case 'な':
+			return $elm$core$Maybe$Just(8);
+		case 'は':
+			return $elm$core$Maybe$Just(9);
+		case 'ば':
+			return $elm$core$Maybe$Just(10);
+		case 'ぱ':
+			return $elm$core$Maybe$Just(11);
+		case 'ま':
+			return $elm$core$Maybe$Just(12);
+		case 'や':
+			return $elm$core$Maybe$Just(13);
+		case 'ら':
+			return $elm$core$Maybe$Just(14);
+		case 'わ':
+			return $elm$core$Maybe$Just(15);
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Twigen$katuyoukeiSyuruiToInt = function (katuyoukei) {
+	switch (katuyoukei.$) {
+		case 'Godan':
+			return 0;
+		case 'Kami':
+			return 1;
+		case 'Shimo':
+			return 2;
+		default:
+			return 3;
+	}
+};
+var $author$project$Twigen$gokanIgaiEncoder = function (_v0) {
+	var katuyoukei = _v0.b;
+	var syurui = _v0.c;
+	var syuruiInt = $author$project$Twigen$dousiSyuruiToInt(syurui);
+	var katuyoukeiSyurui = $author$project$Twigen$katuyoukeiSyuruiToInt(katuyoukei);
+	var gyou = A2(
+		$elm$core$Maybe$withDefault,
+		0,
+		function () {
+			switch (katuyoukei.$) {
+				case 'Godan':
+					var g = katuyoukei.a;
+					return $author$project$Twigen$gyouToInt(g);
+				case 'Kami':
+					var g = katuyoukei.a;
+					return $author$project$Twigen$gyouToInt(g);
+				case 'Shimo':
+					var g = katuyoukei.a;
+					return $author$project$Twigen$gyouToInt(g);
+				default:
+					return $elm$core$Maybe$Just(0);
+			}
+		}());
+	return $elm$bytes$Bytes$Encode$unsignedInt8(((syuruiInt * 64) + (katuyoukeiSyurui * 16)) + gyou);
+};
+var $elm$bytes$Bytes$Encode$Utf8 = F2(
+	function (a, b) {
+		return {$: 'Utf8', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$string = function (str) {
+	return A2(
+		$elm$bytes$Bytes$Encode$Utf8,
+		_Bytes_getStringWidth(str),
+		str);
+};
+var $author$project$Twigen$dousiEncoder = function (dousi) {
+	var _v0 = dousi;
+	var gokan = _v0.a;
+	return $elm$bytes$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$elm$bytes$Bytes$Encode$unsignedInt8(
+				$elm$bytes$Bytes$Encode$getStringWidth(gokan)),
+				$elm$bytes$Bytes$Encode$string(gokan),
+				$author$project$Twigen$gokanIgaiEncoder(dousi)
+			]));
+};
+var $author$project$Twigen$list255Encoder = F2(
+	function (aEncoder, list) {
+		return $elm$bytes$Bytes$Encode$sequence(
+			A2(
+				$elm$core$List$cons,
+				$elm$bytes$Bytes$Encode$unsignedInt8(
+					$elm$core$List$length(list)),
+				A2(
+					$elm$core$List$map,
+					aEncoder,
+					$elm$core$List$reverse(list))));
+	});
+var $author$project$Twigen$stringEncoder = function (str) {
+	return $elm$bytes$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$elm$bytes$Bytes$Encode$unsignedInt8(
+				$elm$bytes$Bytes$Encode$getStringWidth(str)),
+				$elm$bytes$Bytes$Encode$string(str)
+			]));
+};
+var $author$project$Twigen$tangoToBytes = function (data) {
+	var encoder = $elm$bytes$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				A2($author$project$Twigen$list255Encoder, $author$project$Twigen$stringEncoder, data.meisi),
+				A2($author$project$Twigen$list255Encoder, $author$project$Twigen$stringEncoder, data.keiyousi),
+				A2($author$project$Twigen$list255Encoder, $author$project$Twigen$dousiEncoder, data.dousi)
+			]));
+	return $elm$bytes$Bytes$Encode$encode(encoder);
+};
+var $author$project$Twigen$tangoToQuery = function (tango) {
+	return A2(
+		$elm$core$Maybe$map,
+		$author$project$Twigen$base64ToUri,
+		$danfishgold$base64_bytes$Base64$fromBytes(
+			$author$project$Twigen$tangoToBytes(tango)));
+};
+var $author$project$Twigen$updateQuery = F2(
+	function (tango, url) {
+		return _Utils_update(
+			url,
+			{
+				query: $author$project$Twigen$tangoToQuery(tango)
+			});
+	});
 var $author$project$Twigen$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6652,7 +7874,7 @@ var $author$project$Twigen$update = F2(
 					A2(
 						$elm$random$Random$list,
 						10,
-						$author$project$Twigen$sentence(model)));
+						$author$project$Twigen$sentence(model.tango)));
 				return _Utils_Tuple2(model, command);
 			case 'NewSentences':
 				var newSentences = msg.a;
@@ -6661,44 +7883,81 @@ var $author$project$Twigen$update = F2(
 						model,
 						{sentences: newSentences}),
 					$elm$core$Platform$Cmd$none);
-			case 'MeisiUpdate':
-				var list = msg.a;
+			case 'TangoUpdate':
+				var tango = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{meisi: list}),
-					$elm$core$Platform$Cmd$none);
-			case 'KeiyousiUpdate':
-				var list = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{keiyousi: list}),
-					$elm$core$Platform$Cmd$none);
-			case 'DousiUpdate':
-				var list = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{dousi: list}),
-					$elm$core$Platform$Cmd$none);
-			default:
+						{tango: tango}),
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						$elm$url$Url$toString(
+							A2($author$project$Twigen$updateQuery, tango, model.url))));
+			case 'TuikaSetteiUpdate':
 				var settei = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{tuikaSettei: settei}),
 					$elm$core$Platform$Cmd$none);
+			case 'LinkClicked':
+				var urlRequest = msg.a;
+				if (urlRequest.$ === 'Internal') {
+					var url = urlRequest.a;
+					return _Utils_Tuple2(
+						model,
+						A2(
+							$elm$browser$Browser$Navigation$pushUrl,
+							model.key,
+							$elm$url$Url$toString(url)));
+				} else {
+					var href = urlRequest.a;
+					return _Utils_Tuple2(
+						model,
+						$elm$browser$Browser$Navigation$load(href));
+				}
+			default:
+				var url = msg.a;
+				var model_ = _Utils_update(
+					model,
+					{url: url});
+				var maybeTango = A2($elm$core$Maybe$andThen, $author$project$Twigen$tangoFromQuery, url.query);
+				if (maybeTango.$ === 'Nothing') {
+					return _Utils_Tuple2(model_, $elm$core$Platform$Cmd$none);
+				} else {
+					var tango = maybeTango.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model_,
+							{tango: tango}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$string(string));
+	});
+var $elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
 var $author$project$Twigen$Roll = {$: 'Roll'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $author$project$Twigen$DousiUpdate = function (a) {
-	return {$: 'DousiUpdate', a: a};
+var $author$project$Twigen$TangoUpdate = function (a) {
+	return {$: 'TangoUpdate', a: a};
 };
 var $author$project$Twigen$dousiSakujo = F2(
-	function (at, list) {
+	function (at, tango) {
 		var help = F3(
 			function (at_, rest, result) {
 				help:
@@ -6734,8 +7993,12 @@ var $author$project$Twigen$dousiSakujo = F2(
 					}
 				}
 			});
-		return $author$project$Twigen$DousiUpdate(
-			A3(help, at, list, _List_Nil));
+		return $author$project$Twigen$TangoUpdate(
+			_Utils_update(
+				tango,
+				{
+					dousi: A3(help, at, tango.dousi, _List_Nil)
+				}));
 	});
 var $author$project$Twigen$dousiSyuruiToString = function (syurui) {
 	switch (syurui.$) {
@@ -6793,7 +8056,7 @@ var $elm$core$Maybe$map2 = F3(
 		}
 	});
 var $author$project$Twigen$dousiTuika = F2(
-	function (settei, list) {
+	function (settei, tango) {
 		var dousi_ = A3(
 			$elm$core$Maybe$map2,
 			F2(
@@ -6805,12 +8068,15 @@ var $author$project$Twigen$dousiTuika = F2(
 		var list_ = function () {
 			if (dousi_.$ === 'Just') {
 				var d = dousi_.a;
-				return A2($elm$core$List$cons, d, list);
+				return A2($elm$core$List$cons, d, tango.dousi);
 			} else {
-				return list;
+				return tango.dousi;
 			}
 		}();
-		return $author$project$Twigen$DousiUpdate(list_);
+		return $author$project$Twigen$TangoUpdate(
+			_Utils_update(
+				tango,
+				{dousi: list_}));
 	});
 var $author$project$Twigen$TuikaSetteiUpdate = function (a) {
 	return {$: 'TuikaSetteiUpdate', a: a};
@@ -6854,26 +8120,23 @@ var $author$project$Twigen$katuyoukeiSettei = F2(
 				settei,
 				{katuyoukei: katuyoukei}));
 	});
-var $author$project$Twigen$KeiyousiUpdate = function (a) {
-	return {$: 'KeiyousiUpdate', a: a};
-};
-var $elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
+var $author$project$Twigen$keiyousiKousin = F2(
+	function (tango, str) {
+		var keiyousi_ = A2($elm$core$String$split, '\n', str);
+		return $author$project$Twigen$TangoUpdate(
+			_Utils_update(
+				tango,
+				{keiyousi: keiyousi_}));
 	});
-var $author$project$Twigen$keiyousiKousin = A2(
-	$elm$core$Basics$composeR,
-	$elm$core$String$split('\n'),
-	$author$project$Twigen$KeiyousiUpdate);
 var $elm$html$Html$li = _VirtualDom_node('li');
-var $author$project$Twigen$MeisiUpdate = function (a) {
-	return {$: 'MeisiUpdate', a: a};
-};
-var $author$project$Twigen$meisiKousin = A2(
-	$elm$core$Basics$composeR,
-	$elm$core$String$split('\n'),
-	$author$project$Twigen$MeisiUpdate);
+var $author$project$Twigen$meisiKousin = F2(
+	function (tango, str) {
+		var meisi_ = A2($elm$core$String$split, '\n', str);
+		return $author$project$Twigen$TangoUpdate(
+			_Utils_update(
+				tango,
+				{meisi: meisi_}));
+	});
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6925,6 +8188,7 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
 var $elm$html$Html$option = _VirtualDom_node('option');
+var $elm$html$Html$Attributes$placeholder = $elm$html$Html$Attributes$stringProperty('placeholder');
 var $elm$html$Html$select = _VirtualDom_node('select');
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
@@ -6942,18 +8206,10 @@ var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$textarea = _VirtualDom_node('textarea');
 var $elm$html$Html$tr = _VirtualDom_node('tr');
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
-	});
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$ul = _VirtualDom_node('ul');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
-var $author$project$Twigen$view = function (model) {
+var $author$project$Twigen$mainView = function (model) {
 	return A2(
 		$elm$html$Html$div,
 		_List_Nil,
@@ -7016,8 +8272,9 @@ var $author$project$Twigen$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$value(
-										A2($elm$core$String$join, '\n', model.meisi)),
-										$elm$html$Html$Events$onInput($author$project$Twigen$meisiKousin),
+										A2($elm$core$String$join, '\n', model.tango.meisi)),
+										$elm$html$Html$Events$onInput(
+										$author$project$Twigen$meisiKousin(model.tango)),
 										A2($elm$html$Html$Attributes$style, 'resize', 'none')
 									]),
 								_List_Nil)
@@ -7039,8 +8296,9 @@ var $author$project$Twigen$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$value(
-										A2($elm$core$String$join, '\n', model.keiyousi)),
-										$elm$html$Html$Events$onInput($author$project$Twigen$keiyousiKousin),
+										A2($elm$core$String$join, '\n', model.tango.keiyousi)),
+										$elm$html$Html$Events$onInput(
+										$author$project$Twigen$keiyousiKousin(model.tango)),
 										A2($elm$html$Html$Attributes$style, 'resize', 'none')
 									]),
 								_List_Nil)
@@ -7116,7 +8374,7 @@ var $author$project$Twigen$view = function (model) {
 																_List_fromArray(
 																	[
 																		$elm$html$Html$Events$onClick(
-																		A2($author$project$Twigen$dousiSakujo, i, model.dousi))
+																		A2($author$project$Twigen$dousiSakujo, i, model.tango))
 																	]),
 																_List_fromArray(
 																	[
@@ -7125,13 +8383,14 @@ var $author$project$Twigen$view = function (model) {
 															]))
 													]));
 										}),
-									model.dousi))
+									model.tango.dousi))
 							])),
 						A2(
 						$elm$html$Html$input,
 						_List_fromArray(
 							[
 								$elm$html$Html$Attributes$type_('text'),
+								$elm$html$Html$Attributes$placeholder('動詞の語幹'),
 								$elm$html$Html$Events$onInput(
 								$author$project$Twigen$gokanSettei(model.tuikaSettei))
 							]),
@@ -7153,7 +8412,7 @@ var $author$project$Twigen$view = function (model) {
 									]),
 								_List_fromArray(
 									[
-										$elm$html$Html$text('')
+										$elm$html$Html$text('(なし)')
 									])),
 								A2(
 								$elm$html$Html$option,
@@ -7371,7 +8630,7 @@ var $author$project$Twigen$view = function (model) {
 						_List_fromArray(
 							[
 								$elm$html$Html$Events$onClick(
-								A2($author$project$Twigen$dousiTuika, model.tuikaSettei, model.dousi))
+								A2($author$project$Twigen$dousiTuika, model.tuikaSettei, model.tango))
 							]),
 						_List_fromArray(
 							[
@@ -7380,14 +8639,34 @@ var $author$project$Twigen$view = function (model) {
 					]))
 			]));
 };
-var $author$project$Twigen$main = $elm$browser$Browser$element(
-	{
-		init: function (_v0) {
-			return $author$project$Twigen$init;
-		},
-		subscriptions: $author$project$Twigen$subscriptions,
-		update: $author$project$Twigen$update,
-		view: $author$project$Twigen$view
-	});
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $author$project$Twigen$view = function (model) {
+	return {
+		body: _List_fromArray(
+			[
+				$author$project$Twigen$mainView(model),
+				A2(
+				$elm$html$Html$p,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text('code:'),
+						A2(
+						$elm$html$Html$a,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$href('https://github.com/YuyaAizawa/Twigen')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('github.com/YuyaAizawa/Twigen')
+							]))
+					]))
+			]),
+		title: 'クソツイジェネレータ'
+	};
+};
+var $author$project$Twigen$main = $elm$browser$Browser$application(
+	{init: $author$project$Twigen$init, onUrlChange: $author$project$Twigen$UrlChanged, onUrlRequest: $author$project$Twigen$LinkClicked, subscriptions: $author$project$Twigen$subscriptions, update: $author$project$Twigen$update, view: $author$project$Twigen$view});
 _Platform_export({'Twigen':{'init':$author$project$Twigen$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
