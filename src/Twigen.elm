@@ -129,6 +129,7 @@ view model =
     { title = "クソツイジェネレータ"
     , body =
         [ mainView model
+        , tweetButton model.url
         , p []
             [ text <| "code:"
             , a
@@ -292,6 +293,17 @@ dousiSakujo at tango =
         TangoUpdate { tango | dousi = help at tango.dousi [] }
 
 
+tweetButton : Url -> Html Msg
+tweetButton url =
+    a
+        [ Attr.href "https://twitter.com/share"
+        , Attr.class "twitter-share-button"
+        , Attr.attribute "data-text" "くすっとできるクソツイを生成"
+        , Attr.attribute "data-url" "https://yuyaaizawa.github.io/Twigen/" -- (Url.toString url)
+        , Attr.attribute "data-hashtags" "クソツイジェネレータ"
+        , Attr.attribute "data-related" "TypedTypelessTy"
+        ]
+        [ text <| "作成したジェネレータをTweetで共有" ]
 
 -- SUBSCRIPTIONS
 
