@@ -1,23 +1,28 @@
 module Twigen exposing (main)
 
 import Base64
-import Browser
+import Browser exposing (Document, UrlRequest)
+import Browser.Navigation as Nav
 import Bytes exposing (Bytes)
 import Bytes.Encode as BE
 import Bytes.Decode as BD
-import Html exposing (Html, div, h1, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input)
+import Html exposing (Html, div, h1, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input, p, a)
 import Html.Attributes as Attr
 import Html.Events exposing (..)
 import Random exposing (Generator, map, map2, map3, lazy)
+import Task
+import Url exposing (Url)
 
 
 
 main =
-    Browser.element
-        { init = \() -> init
+    Browser.application
+        { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
+        , onUrlRequest = LinkClicked
+        , onUrlChange = UrlChanged
         }
 
 
@@ -26,13 +31,14 @@ main =
 
 
 type alias Model =
-    { sentences : List String
-    , tango : Tango
+    { key : Nav.Key
+    , url : Url
+    , sentences : List String
+    , tango : TangoData
     , tuikaSettei : TuikaSettei
-    , toURL : String
     }
 
-type alias Tango =
+type alias TangoData =
     { meisi : List Meisi
     , keiyousi : List Keiyousi
     , dousi : List Dousi
@@ -53,9 +59,10 @@ type alias TuikaSettei =
 type Msg
     = Roll
     | NewSentences (List String)
-    | TangoUpdate Tango
+    | TangoUpdate TangoData
     | TuikaSetteiUpdate TuikaSettei
-    | TextChanged String
+    | LinkClicked UrlRequest
+    | UrlChanged Url
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -73,21 +80,66 @@ update msg model =
             ( { model | sentences = newSentences }, Cmd.none )
 
         TangoUpdate tango ->
-            ( { model | tango = tango }, Cmd.none )
+            ( { model | tango = tango }
+            , Nav.pushUrl model.key <| Url.toString <| updateQuery tango model.url
+            )
 
         TuikaSetteiUpdate settei ->
             ( { model | tuikaSettei = settei }, Cmd.none )
 
-        TextChanged str ->
-            ( { model | toURL = str }, Cmd.none )
+        LinkClicked urlRequest ->
+            case urlRequest of
+                Browser.Internal url ->
+                    ( model
+                    , Nav.pushUrl model.key (Url.toString url)
+                    )
+
+                Browser.External href ->
+                    ( model
+                    , Nav.load href
+                    )
+
+        UrlChanged url ->
+            let
+                model_ =
+                    { model | url = url }
+
+                maybeTango =
+                    url.query
+                        |> Maybe.andThen tangoFromQuery
+            in
+                case maybeTango of
+                    Nothing ->
+                        ( model_, Cmd.none )
+
+                    Just tango ->
+                        ( { model_ | tango = tango }, Cmd.none )
+
+updateQuery : TangoData -> Url -> Url
+updateQuery tango url =
+    { url | query = tangoToQuery tango }
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
+    { title = "クソツイジェネレータ"
+    , body =
+        [ mainView model
+        , p []
+            [ text <| "code:"
+            , a
+                [ Attr.href "https://github.com/YuyaAizawa/Twigen"]
+                [ text <| "github.com/YuyaAizawa/Twigen" ]
+            ]
+        ]
+    }
+
+mainView : Model -> Html Msg
+mainView model =
     div []
         [ h1 [][ text "クソツイジェネレータ" ]
         , ul []
@@ -140,11 +192,12 @@ view model =
                 ]
             , input
                 [ Attr.type_ "text"
+                , Attr.placeholder "動詞の語幹"
                 , onInput <| gokanSettei model.tuikaSettei
                 ][]
             , select
                 [ onInput <| gyouSettei model.tuikaSettei ]
-                [ option [ Attr.value "" ][ text <| "" ]
+                [ option [ Attr.value "" ][ text <| "(なし)" ]
                 , option [ Attr.value "あ" ][ text <| "あ行" ]
                 , option [ Attr.value "か" ][ text <| "か行" ]
                 , option [ Attr.value "が" ][ text <| "が行" ]
@@ -174,27 +227,10 @@ view model =
             , button
                 [ onClick <| dousiTuika model.tuikaSettei model.tango ]
                 [ text <| "追加" ]
-            , br [][], input [ Attr.type_ "text", onInput <| TextChanged ][], br [][]
-            , text
-                <| Debug.toString
-                <| Maybe.map base64ToURI
-                <| Base64.fromBytes
-                <| tangoToBytes
-                <| model.tango
-            , br [][]
-            , text
-                <| Debug.toString
-                <| Maybe.andThen tangoFromBytes
-                <| Maybe.andThen Base64.toBytes
-                <| Maybe.map uriToBase64
-                <| Maybe.map base64ToURI
-                <| Base64.fromBytes
-                <| tangoToBytes
-                <| model.tango
             ]
         ]
 
-meisiKousin : Tango -> String -> Msg
+meisiKousin : TangoData -> String -> Msg
 meisiKousin tango str =
     let
         meisi_ =
@@ -203,7 +239,7 @@ meisiKousin tango str =
     in
         TangoUpdate { tango | meisi = meisi_ }
 
-keiyousiKousin : Tango -> String -> Msg
+keiyousiKousin : TangoData -> String -> Msg
 keiyousiKousin tango str =
     let
         keiyousi_ =
@@ -383,7 +419,7 @@ c = Random.constant
 
 type alias Meisi = String
 
-meisi : Tango -> Generator String
+meisi : TangoData -> Generator String
 meisi tango =
     let
         sahenMeisi =
@@ -392,9 +428,9 @@ meisi tango =
                 |> List.map (\(Dousi gokan _ _) -> gokan)
     in
         tango.meisi ++ sahenMeisi
-            |> generatorFromList
+            |> generatorFromList "○○"
 
-meisiKu : Tango -> Generator String
+meisiKu : TangoData -> Generator String
 meisiKu tango =
     choice
     [ meisi tango
@@ -417,24 +453,25 @@ meisiKu tango =
 
 type alias Keiyousi = String
 
-keiyousi : Tango -> Generator KeiyousiGokan
+keiyousi : TangoData -> Generator KeiyousiGokan
 keiyousi tango =
-    generatorFromList tango.keiyousi
+    tango.keiyousi
+        |> generatorFromList dummyKeiyousi
         |> map KeiyousiGokan
 
 type KeiyousiGokan = KeiyousiGokan String
 
-keiyousiGokan : Tango -> Generator KeiyousiGokan
+keiyousiGokan : TangoData -> Generator KeiyousiGokan
 keiyousiGokan tango =
     let
         ppoi =
-            generatorFromList
+            generatorFromList ""
             [ "っぽ"
             , "らし"
             ]
 
         nikui =
-            generatorFromList
+            generatorFromList ""
             [ "難"
             , "辛"
             , "やす"
@@ -522,27 +559,27 @@ dousiSyuruiFromString syurui =
         "両方"   -> Ryouhou |> Just
         _ -> Nothing
 
-jidousi : Tango -> Generator Dousi
+jidousi : TangoData -> Generator Dousi
 jidousi tango =
     tango.dousi
         |> List.filter (\(Dousi _ _ syurui) ->
             syurui == Jidousi || syurui == Ryouhou)
-        |> generatorFromList
+        |> generatorFromList dummyDousi
 
-tadousi : Tango -> Generator Dousi
+tadousi : TangoData -> Generator Dousi
 tadousi tango =
     tango.dousi
         |> List.filter (\(Dousi _ _ syurui) ->
             syurui == Tadousi || syurui == Ryouhou)
-        |> generatorFromList
+        |> generatorFromList dummyDousi
 
 type alias DousiKu = ( String, Dousi )
 
-dousiKu : Tango -> Generator DousiKu
+dousiKu : TangoData -> Generator DousiKu
 dousiKu tango =
     let
         hukusi =
-            generatorFromList
+            generatorFromList ""
             [ "とても"
             , "非常に"
             , "みるからに"
@@ -550,7 +587,7 @@ dousiKu tango =
             ]
 
         youni =
-            generatorFromList
+            generatorFromList ""
             [ "ように" ]
 
         jidou =
@@ -671,24 +708,38 @@ katuyougobi katuyou =
         Sahen      -> Katuyougobi "し" ( "し", "し" ) "する" "する" "すれ" "せよ"
         _          -> Katuyougobi "Error" ( "Error", "Error" ) "Error" "Error" "Error" "Error"
 
-generatorFromList : List a -> Generator a
-generatorFromList list =
+generatorFromList : a -> List a -> Generator a
+generatorFromList dummy list =
     case list of
-        [] -> Random.constant <| Debug.todo "Error"
+        [] -> Random.constant dummy
         hd :: tl -> Random.uniform hd tl
+
+dummyDousi =
+    Dousi "○○" Sahen Ryouhou
+
+dummyKeiyousi =
+    "○○し"
 
 
 
 -- SERIALIZE
 
 
-type alias TangoData =
-    { meisi : List Meisi
-    , keiyousi : List Keiyousi
-    , dousi : List Dousi
-    }
+tangoToQuery : TangoData -> Maybe String
+tangoToQuery tango =
+    tango
+        |> tangoToBytes
+        |> Base64.fromBytes
+        |> Maybe.map base64ToUri
 
-tangoToBytes : Tango -> Bytes
+tangoFromQuery : String -> Maybe TangoData
+tangoFromQuery query =
+    query
+        |> uriToBase64
+        |> Base64.toBytes
+        |> Maybe.andThen tangoFromBytes
+
+tangoToBytes : TangoData -> Bytes
 tangoToBytes data =
     let
         encoder =
@@ -700,7 +751,7 @@ tangoToBytes data =
     in
         BE.encode encoder
 
-tangoFromBytes : Bytes -> Maybe Tango
+tangoFromBytes : Bytes -> Maybe TangoData
 tangoFromBytes bytes =
     let
         decoder =
@@ -876,8 +927,8 @@ dousiSyuruiFromInt i =
         2 -> Just Ryouhou
         _ -> Nothing
 
-base64ToURI : String -> String
-base64ToURI =
+base64ToUri : String -> String
+base64ToUri =
     String.replace "+" "*"
         >> String.replace "/" "."
         >> String.replace "=" "-"
@@ -893,114 +944,26 @@ uriToBase64 =
 -- INIT
 
 
-init : ( Model, Cmd Msg )
-init =
-    (
-        { sentences = []
-        , tango =
-            { meisi =
-                [ "人"
-                , "神"
-                , "他人"
-                , "人類"
-                , "可能性"
-                , "アイドル"
-                , "可燃性"
-                , "群馬"
-                , "年収"
-                , "百合"
-                , "メモリ空間"
-                , "流動性"
-                , "ＣＰＵ"
-                , "化粧品"
-                , "生活リズム"
-                , "バナナ"
-                , "隠れマルコフモデル"
-                , "猫"
-                , "筑波大学"
-                , "核実験"
-                , "ＡＩ"
-                , "薬"
-                , "社会"
-                , "ゴリラ"
-                , "単位"
-                , "人生"
-                , "オタク"
-                ]
-            , keiyousi =
-                [ "美し"
-                , "優し"
-                , "賢"
-                , "虚し"
-                , "怖"
-                , "痛"
-                , "悲し"
-                , "美味し"
-                , "醜"
-                , "悔し"
-                , "可愛"
-                , "大き"
-                , "長"
-                , "若"
-                , "深"
-                , "遠"
-                , "暗"
-                , "薄"
-                , "たくまし"
-                , "楽し"
-                , "激し"
-                ]
-            , dousi =
-                ([ Dousi "燃" <| Shimo "あ"
-                , Dousi "生" <| Kami  "か"
-                , Dousi "話" <| Godan "さ"
-                , Dousi "寝" <| Shimo ""
-                , Dousi "光" <| Godan "ら"
-                , Dousi "輝" <| Godan "か"
-                , Dousi "曲が" <| Godan "ら"
-                , Dousi "歩" <| Godan "か"
-                , Dousi "落" <| Kami "た"
-                ] |> List.map (\f -> f Jidousi))
-                ++
-                ([ Dousi "食" <| Shimo "ば"
-                , Dousi "飲" <| Godan "ま"
-                , Dousi "買" <| Godan "わ"
-                , Dousi "見" <| Shimo ""
-                , Dousi "見" <| Shimo "さ"
-                , Dousi "書" <| Godan "か"
-                , Dousi "送" <| Godan "ら"
-                , Dousi "使" <| Godan "わ"
-                , Dousi "話" <| Godan "さ"
-                , Dousi "穿" <| Godan "た"
-                , Dousi "曲" <| Shimo "が"
-                , Dousi "攻" <| Shimo "ま"
-                , Dousi "落と" <| Godan "さ"
-                , Dousi "叩" <| Godan "か"
-                ] |> List.map (\f -> f Tadousi))
-                ++
-                ([ "筋トレ"
-                , "崩壊"
-                ] |> List.map (\gokan -> Dousi gokan Sahen Jidousi))
-                ++
-                ([ "待望"
-                , "強要"
-                , "報告"
-                , "実装"
-                , "連想"
-                ] |> List.map (\gokan -> Dousi gokan Sahen Tadousi))
-                ++
-                (["配信"
-                , "開発"
-                , "エンジョイ"
-                ] |> List.map (\gokan -> Dousi gokan Sahen Ryouhou))
-            }
-        , tuikaSettei =
-            { gokan = ""
-            , gyou = "あ"
-            , katuyoukei = "五段"
-            , syurui = "自動詞"
-            }
-        , toURL = ""
-        }
-    , Cmd.none
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url key =
+    ( initModel url key
+    , Task.perform UrlChanged <| Task.succeed <| url
     )
+
+initModel : Url -> Nav.Key -> Model
+initModel url key =
+    { key = key
+    , url = url
+    , sentences = []
+    , tango =
+        { meisi = []
+        , keiyousi = []
+        , dousi = []
+        }
+    , tuikaSettei =
+        { gokan = ""
+        , gyou = ""
+        , katuyoukei = "五段"
+        , syurui = "自動詞"
+        }
+    }
