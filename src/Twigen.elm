@@ -1,6 +1,10 @@
 module Twigen exposing (main)
 
+import Base64
 import Browser
+import Bytes exposing (Bytes)
+import Bytes.Encode as BE
+import Bytes.Decode as BD
 import Html exposing (Html, div, h1, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input)
 import Html.Attributes as Attr
 import Html.Events exposing (..)
@@ -23,10 +27,15 @@ main =
 
 type alias Model =
     { sentences : List String
-    , meisi : List Meisi
+    , tango : Tango
+    , tuikaSettei : TuikaSettei
+    , toURL : String
+    }
+
+type alias Tango =
+    { meisi : List Meisi
     , keiyousi : List Keiyousi
     , dousi : List Dousi
-    , tuikaSettei : TuikaSettei
     }
 
 type alias TuikaSettei =
@@ -44,10 +53,9 @@ type alias TuikaSettei =
 type Msg
     = Roll
     | NewSentences (List String)
-    | MeisiUpdate (List String)
-    | KeiyousiUpdate (List String)
-    | DousiUpdate (List Dousi)
+    | TangoUpdate Tango
     | TuikaSetteiUpdate TuikaSettei
+    | TextChanged String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -57,25 +65,21 @@ update msg model =
                 command =
                     Random.generate NewSentences
                         <| Random.list 10
-                        <| sentence model
+                        <| sentence model.tango
             in
                 ( model, command )
 
         NewSentences newSentences ->
             ( { model | sentences = newSentences }, Cmd.none )
 
-        MeisiUpdate list ->
-            ( { model | meisi = list }, Cmd.none )
-
-        KeiyousiUpdate list ->
-            ( { model | keiyousi = list }, Cmd.none )
-
-        DousiUpdate list ->
-            ( { model | dousi = list }, Cmd.none )
+        TangoUpdate tango ->
+            ( { model | tango = tango }, Cmd.none )
 
         TuikaSetteiUpdate settei ->
             ( { model | tuikaSettei = settei }, Cmd.none )
 
+        TextChanged str ->
+            ( { model | toURL = str }, Cmd.none )
 
 
 
@@ -97,16 +101,16 @@ view model =
             [ div []
                 [ h3 [][ text <| "名詞" ]
                 , textarea
-                    [ Attr.value <| (model.meisi |> String.join "\n")
-                    , onInput meisiKousin
+                    [ Attr.value <| (model.tango.meisi |> String.join "\n")
+                    , onInput <| meisiKousin model.tango
                     , Attr.style "resize" "none"
                     ][]
                 ]
             , div []
                 [ h3 [][ text <| "形容詞" ]
                 , textarea
-                    [ Attr.value <| (model.keiyousi |> String.join "\n")
-                    , onInput keiyousiKousin
+                    [ Attr.value <| (model.tango.keiyousi |> String.join "\n")
+                    , onInput <| keiyousiKousin model.tango
                     , Attr.style "resize" "none"
                     ][]
                 ]
@@ -119,7 +123,7 @@ view model =
                     , Attr.style "display" "block"
                     , Attr.style "height" "100px"
                     ]
-                    ( model.dousi
+                    ( model.tango.dousi
                         |> List.indexedMap (\i (Dousi gokan katuyou syurui) ->
                             tr []
                                 [ td [][ text <| gokan ]
@@ -127,7 +131,7 @@ view model =
                                 , td [][ text <| dousiSyuruiToString <| syurui ]
                                 , td []
                                     [ button
-                                        [ onClick <| dousiSakujo i model.dousi ]
+                                        [ onClick <| dousiSakujo i model.tango ]
                                         [ text <| "削除" ]
                                     ]
                                 ]
@@ -168,20 +172,45 @@ view model =
                 , option [ Attr.value "両方"   ][ text <| "両方" ]
                 ]
             , button
-                [ onClick <| dousiTuika model.tuikaSettei model.dousi ]
+                [ onClick <| dousiTuika model.tuikaSettei model.tango ]
                 [ text <| "追加" ]
+            , br [][], input [ Attr.type_ "text", onInput <| TextChanged ][], br [][]
+            , text
+                <| Debug.toString
+                <| Maybe.map base64ToURI
+                <| Base64.fromBytes
+                <| tangoToBytes
+                <| model.tango
+            , br [][]
+            , text
+                <| Debug.toString
+                <| Maybe.andThen tangoFromBytes
+                <| Maybe.andThen Base64.toBytes
+                <| Maybe.map uriToBase64
+                <| Maybe.map base64ToURI
+                <| Base64.fromBytes
+                <| tangoToBytes
+                <| model.tango
             ]
         ]
 
-meisiKousin : String -> Msg
-meisiKousin =
-  String.split "\n"
-    >> MeisiUpdate
+meisiKousin : Tango -> String -> Msg
+meisiKousin tango str =
+    let
+        meisi_ =
+            str
+                |> String.split "\n"
+    in
+        TangoUpdate { tango | meisi = meisi_ }
 
-keiyousiKousin : String -> Msg
-keiyousiKousin =
-  String.split "\n"
-    >> KeiyousiUpdate
+keiyousiKousin : Tango -> String -> Msg
+keiyousiKousin tango str =
+    let
+        keiyousi_ =
+            str
+                |> String.split "\n"
+    in
+        TangoUpdate { tango | keiyousi = keiyousi_ }
 
 gokanSettei : TuikaSettei -> String -> Msg
 gokanSettei settei gokan =
@@ -196,7 +225,7 @@ katuyoukeiSettei settei katuyoukei =
 syuruiSettei settei syurui =
     TuikaSetteiUpdate { settei | syurui = syurui }
 
-dousiTuika settei list =
+dousiTuika settei tango =
     let
         dousi_ =
             Maybe.map2
@@ -206,12 +235,12 @@ dousiTuika settei list =
 
         list_ =
             case dousi_ of
-                Just d -> d :: list
-                Nothing -> list
+                Just d -> d :: tango.dousi
+                Nothing -> tango.dousi
     in
-        DousiUpdate list_
+        TangoUpdate { tango | dousi = list_ }
 
-dousiSakujo at list =
+dousiSakujo at tango =
     let
         help at_ rest result =
             case ( at_, rest ) of
@@ -224,7 +253,7 @@ dousiSakujo at list =
                 _ ->
                     result |> List.reverse
     in
-        DousiUpdate <| help at list []
+        TangoUpdate { tango | dousi = help at tango.dousi [] }
 
 
 
@@ -240,25 +269,25 @@ subscriptions model =
 -- TWEET PATTERN DIFINITIONS
 
 
-sentence model =
+sentence tango =
     choice
-    [ intermittentReference model
-    , dagaomaeha model
-    , declarative model
-    , declarative model -- weight
-    , kimidakeno model
-    , haityuu model
-    , otherSentence model
+    [ intermittentReference tango
+    , dagaomaeha tango
+    , declarative tango
+    , declarative tango -- weight
+    , kimidakeno tango
+    , haityuu tango
+    , otherSentence tango
     ]
 
-intermittentReference model =
+intermittentReference tango =
     choice
-    [ seq [ meisiKu model, c "，", dousiKu model |> map dousiKuRenyou1, c "がち．" ]
-    , seq [ meisiKu model, c "，", meisiKu model, c "みがある．" ]
-    , seq [ meisiKu model, c "，", meisi model, c "じゃん．" ]
+    [ seq [ meisiKu tango, c "，", dousiKu tango |> map dousiKuRenyou1, c "がち．" ]
+    , seq [ meisiKu tango, c "，", meisiKu tango, c "みがある．" ]
+    , seq [ meisiKu tango, c "，", meisi tango, c "じゃん．" ]
     ]
 
-dagaomaeha model =
+dagaomaeha tango =
     let
         ore =
             choice
@@ -269,9 +298,9 @@ dagaomaeha model =
 
         body =
             choice
-            [ meisiKu model |> map (\m -> m++"だ")
-            , keiyousiGokan model |> map keiyousiSyuusi
-            , dousiKu model |> map dousiKuSyuusi
+            [ meisiKu tango |> map (\m -> m++"だ")
+            , keiyousiGokan tango |> map keiyousiSyuusi
+            , dousiKu tango |> map dousiKuSyuusi
             ]
 
         omae =
@@ -283,26 +312,26 @@ dagaomaeha model =
     in
         seq [ ore, c "は", body, c "が", omae, c "は？" ]
 
-otherSentence model =
+otherSentence tango =
     choice
-    [ seq [ meisiKu model, c "で申し訳ないよ😢" ]
-    , seq [ meisiKu model, c "のNASA" ]
-    , seq [ keiyousi model |> map keiyousiSyuusi, c "いいいいいいいい✌('ω'✌ )三✌('ω')✌三( ✌'ω')✌" ]
-    , seq [ c "無限に", tadousi model |> map dousiMizen, c "れるお前の人生" ]
-    , seq [ c "(", meisiKu model, c "は", tadousi model |> map dousiMizen, c ")ないです" ]
-    , seq [ jidousi model |> map dousiMeirei, c "！そなたは", keiyousi model |> map keiyousiSyuusi ]
+    [ seq [ meisiKu tango, c "で申し訳ないよ😢" ]
+    , seq [ meisiKu tango, c "のNASA" ]
+    , seq [ keiyousi tango |> map keiyousiSyuusi, c "いいいいいいいい✌('ω'✌ )三✌('ω')✌三( ✌'ω')✌" ]
+    , seq [ c "無限に", tadousi tango |> map dousiMizen, c "れるお前の人生" ]
+    , seq [ c "(", meisiKu tango, c "は", tadousi tango |> map dousiMizen, c ")ないです" ]
+    , seq [ jidousi tango |> map dousiMeirei, c "！そなたは", keiyousi tango |> map keiyousiSyuusi ]
     ]
 
-declarative model =
+declarative tango =
     let
         body =
             choice
-            [ seq [ meisiKu model, c "は", meisiKu model, choice [ c "", c "だ", c "である", c "でない", c "でできている" ] ]
-            , seq [ meisiKu model, c "には", meisiKu model, c "がある" ]
-            , seq [ meisiKu model, c "は", keiyousiGokan model |> map keiyousiSyuusi ]
-            , seq [ meisiKu model, c "は", dousiKu model |> map dousiKuSyuusi, choice [ c "", c "ことがある"] ]
-            , seq [ meisiKu model, c "は", dousiKu model |> map dousiKuMizen, c "ない", choice [ c "", c "ことがある"] ]
-            , seq [ meisiKu model, c "を", tadousi model |> map dousiRenyou2, c "てはいけない" ]
+            [ seq [ meisiKu tango, c "は", meisiKu tango, choice [ c "", c "だ", c "である", c "でない", c "でできている" ] ]
+            , seq [ meisiKu tango, c "には", meisiKu tango, c "がある" ]
+            , seq [ meisiKu tango, c "は", keiyousiGokan tango |> map keiyousiSyuusi ]
+            , seq [ meisiKu tango, c "は", dousiKu tango |> map dousiKuSyuusi, choice [ c "", c "ことがある"] ]
+            , seq [ meisiKu tango, c "は", dousiKu tango |> map dousiKuMizen, c "ない", choice [ c "", c "ことがある"] ]
+            , seq [ meisiKu tango, c "を", tadousi tango |> map dousiRenyou2, c "てはいけない" ]
             ]
     in
         choice
@@ -313,31 +342,31 @@ declarative model =
         , seq [ c "もしかして：", body ]
         ]
 
-kimidakeno model =
+kimidakeno tango =
     seq
     [ c "君だけの"
-    , meisi model
+    , meisi tango
     , c "を"
-    , tadousi model |> map dousiRenyou2
+    , tadousi tango |> map dousiRenyou2
     , c "て最強の"
-    , meisi model
+    , meisi tango
     , c "を作り出せ！"
     ]
 
-haityuu model =
+haityuu tango =
     Random.map2
     (\s1 ( s2, d ) ->
         s1 ++ "は" ++ s2 ++ dousiSyuusi d ++ "場合と" ++ dousiMizen d ++ "ない場合があるぞい．"
     )
-    (meisiKu model)
-    (dousiKu model)
+    (meisiKu tango)
+    (dousiKu tango)
 
 
 choice : List (Generator a) -> Generator a
 choice list =
     case list of
         [] -> Random.constant <| Debug.todo "Error"
-        hd :: tl -> Random.uniform hd tl |> Random.andThen (\r -> r)  
+        hd :: tl -> Random.uniform hd tl |> Random.andThen (\r -> r)
 
 seq : List (Generator String) -> Generator String
 seq list =
@@ -354,49 +383,49 @@ c = Random.constant
 
 type alias Meisi = String
 
-meisi : Model -> Generator String
-meisi model =
+meisi : Tango -> Generator String
+meisi tango =
     let
         sahenMeisi =
-            model.dousi
+            tango.dousi
                 |> List.filter (\(Dousi _ katuyoukei _) -> katuyoukei == Sahen )
                 |> List.map (\(Dousi gokan _ _) -> gokan)
     in
-        model.meisi ++ sahenMeisi
+        tango.meisi ++ sahenMeisi
             |> generatorFromList
 
-meisiKu : Model -> Generator String
-meisiKu model =
+meisiKu : Tango -> Generator String
+meisiKu tango =
     choice
-    [ meisi model
-    , meisi model -- weight
-    , meisi model -- weight
+    [ meisi tango
+    , meisi tango -- weight
+    , meisi tango -- weight
     , map2 -- 「の」
         (\m1 m2 -> m1 ++ "の" ++ m2)
-        (lazy (\_ -> meisiKu model))
-        (meisi model)
+        (lazy (\_ -> meisiKu tango))
+        (meisi tango)
     , map2 -- 形容詞の連体形
         (\k m -> keiyousiRentai k ++ m)
-        (keiyousi model)
-        (meisi model)
+        (keiyousi tango)
+        (meisi tango)
     , map2 -- 用言の連体形
         (\dk m -> dousiKuRentai dk ++ m)
-        (lazy (\_ -> dousiKu model))
-        (meisi model)
+        (lazy (\_ -> dousiKu tango))
+        (meisi tango)
     ]
 
 
 type alias Keiyousi = String
 
-keiyousi : Model -> Generator KeiyousiGokan
-keiyousi model =
-    generatorFromList model.keiyousi
+keiyousi : Tango -> Generator KeiyousiGokan
+keiyousi tango =
+    generatorFromList tango.keiyousi
         |> map KeiyousiGokan
 
 type KeiyousiGokan = KeiyousiGokan String
 
-keiyousiGokan : Model -> Generator KeiyousiGokan
-keiyousiGokan model =
+keiyousiGokan : Tango -> Generator KeiyousiGokan
+keiyousiGokan tango =
     let
         ppoi =
             generatorFromList
@@ -412,20 +441,20 @@ keiyousiGokan model =
             ]
     in
         choice
-        [ keiyousi model
-        , keiyousi model -- weight
-        , keiyousi model -- weight
-        , keiyousi model -- weight
+        [ keiyousi tango
+        , keiyousi tango -- weight
+        , keiyousi tango -- weight
+        , keiyousi tango -- weight
         , map3 -- 名詞 助動詞
             (\m j (KeiyousiGokan k) -> m ++ j ++ "く" ++ k |> KeiyousiGokan)
-            (meisiKu model)
+            (meisiKu tango)
             ppoi
-            (keiyousi model)
+            (keiyousi tango)
         , map3 -- 動詞の連用形＋付属語
             (\dk n (KeiyousiGokan k) -> dousiKuRenyou1 dk ++ n ++ "く" ++ k |> KeiyousiGokan)
-            (dousiKu model)
+            (dousiKu tango)
             nikui
-            (keiyousi model)
+            (keiyousi tango)
         ]
 
 keiyousiKatuyou : Katuyoukei -> KeiyousiGokan -> String
@@ -493,24 +522,24 @@ dousiSyuruiFromString syurui =
         "両方"   -> Ryouhou |> Just
         _ -> Nothing
 
-jidousi : Model -> Generator Dousi
-jidousi model =
-    model.dousi
+jidousi : Tango -> Generator Dousi
+jidousi tango =
+    tango.dousi
         |> List.filter (\(Dousi _ _ syurui) ->
             syurui == Jidousi || syurui == Ryouhou)
         |> generatorFromList
 
-tadousi : Model -> Generator Dousi
-tadousi model =
-    model.dousi
+tadousi : Tango -> Generator Dousi
+tadousi tango =
+    tango.dousi
         |> List.filter (\(Dousi _ _ syurui) ->
             syurui == Tadousi || syurui == Ryouhou)
         |> generatorFromList
 
 type alias DousiKu = ( String, Dousi )
 
-dousiKu : Model -> Generator DousiKu
-dousiKu model =
+dousiKu : Tango -> Generator DousiKu
+dousiKu tango =
     let
         hukusi =
             generatorFromList
@@ -525,13 +554,13 @@ dousiKu model =
             [ "ように" ]
 
         jidou =
-             jidousi model |> map (\d -> ("", d))
+             jidousi tango |> map (\d -> ("", d))
 
         tadou =
             map2
             (\m d -> (m++"を", d))
-            (lazy (\_ -> meisiKu model))
-            (tadousi model)
+            (lazy (\_ -> meisiKu tango))
+            (tadousi tango)
     in
         choice
         [ jidou
@@ -542,17 +571,17 @@ dousiKu model =
         , tadou -- weight
         , map3 -- 動詞の連体形＋「ように」
             (\dk y d2 -> ( dousiKuRentai dk ++ y, d2 ))
-            (lazy (\_ -> dousiKu model))
+            (lazy (\_ -> dousiKu tango))
             youni
-            (jidousi model)
+            (jidousi tango)
         , map2 -- 形容詞の連用形
             (\k ( s, d ) -> ( keiyousiRenyou2 k ++ s, d ))
-            (lazy (\_ -> keiyousiGokan model))
-            (lazy (\_ -> dousiKu model))
+            (lazy (\_ -> keiyousiGokan tango))
+            (lazy (\_ -> dousiKu tango))
         , map2 -- 副詞
             (\h ( s, d ) -> ( h++s, d ))
             hukusi
-            (lazy (\_ -> dousiKu model))
+            (lazy (\_ -> dousiKu tango))
         ]
 
 type Katuyoukei
@@ -649,6 +678,218 @@ generatorFromList list =
         hd :: tl -> Random.uniform hd tl
 
 
+
+-- SERIALIZE
+
+
+type alias TangoData =
+    { meisi : List Meisi
+    , keiyousi : List Keiyousi
+    , dousi : List Dousi
+    }
+
+tangoToBytes : Tango -> Bytes
+tangoToBytes data =
+    let
+        encoder =
+            BE.sequence
+                [ list255Encoder stringEncoder data.meisi
+                , list255Encoder stringEncoder data.keiyousi
+                , list255Encoder dousiEncoder data.dousi
+                ]
+    in
+        BE.encode encoder
+
+tangoFromBytes : Bytes -> Maybe Tango
+tangoFromBytes bytes =
+    let
+        decoder =
+            list255Decoder stringDecoder |> BD.andThen (\m ->
+            list255Decoder stringDecoder |> BD.andThen (\k ->
+            list255Decoder dousiDecoder |> BD.map (\d ->
+                { meisi = m, keiyousi = k, dousi = d }
+            )))
+    in
+        BD.decode decoder bytes
+
+stringEncoder : String -> BE.Encoder
+stringEncoder str =
+    BE.sequence
+    [ BE.unsignedInt8 <| BE.getStringWidth str
+    , BE.string str
+    ]
+
+stringDecoder : BD.Decoder String
+stringDecoder =
+    BD.unsignedInt8
+        |> BD.andThen BD.string
+
+dousiEncoder : Dousi -> BE.Encoder
+dousiEncoder dousi =
+    let
+        (Dousi gokan _ _) =
+            dousi
+    in
+        BE.sequence
+        [ BE.unsignedInt8 <| BE.getStringWidth gokan
+        , BE.string gokan
+        , gokanIgaiEncoder dousi
+        ]
+
+dousiDecoder : BD.Decoder Dousi
+dousiDecoder =
+    BD.unsignedInt8
+        |> BD.andThen BD.string
+        |> BD.andThen gokanIgaiDecoder
+
+gokanIgaiEncoder (Dousi _ katuyoukei syurui) =
+    let
+        gyou =
+            (case katuyoukei of
+                Godan g -> gyouToInt g
+                Kami  g -> gyouToInt g
+                Shimo g -> gyouToInt g
+                Sahen   -> Just 0)
+            |> Maybe.withDefault 0
+
+        katuyoukeiSyurui =
+            katuyoukeiSyuruiToInt katuyoukei
+
+        syuruiInt =
+            dousiSyuruiToInt syurui
+    in
+        syuruiInt * 64 + katuyoukeiSyurui * 16 + gyou
+            |> BE.unsignedInt8
+
+gokanIgaiDecoder : String -> BD.Decoder Dousi
+gokanIgaiDecoder gokan =
+    let
+        gyou i =
+            gyouFromInt (modBy 16 i)
+
+        katuyoukeiSyurui i =
+            katuyoukeiSyuruiFromInt (modBy 64 i // 16)
+
+        dousiSyurui i =
+            dousiSyuruiFromInt (i // 64)
+
+        gokanIgai =
+            (\i ->
+                Maybe.map3
+                (\g k s -> Dousi gokan (k g) s)
+                (gyou i)
+                (katuyoukeiSyurui i)
+                (dousiSyurui i)
+            )
+    in
+        BD.unsignedInt8
+            |> BD.andThen (
+                gokanIgai
+                    >> Maybe.map BD.succeed
+                    >> Maybe.withDefault BD.fail
+            )
+
+list255Encoder : (a -> BE.Encoder) -> List a -> BE.Encoder
+list255Encoder aEncoder list =
+    BE.sequence <|
+        BE.unsignedInt8 (list |> List.length)
+            :: (list |> List.reverse |> List.map aEncoder)
+
+list255Decoder : BD.Decoder a -> BD.Decoder (List a)
+list255Decoder decoder =
+    let
+        listStep : BD.Decoder a -> (Int, List a) -> BD.Decoder (BD.Step (Int, List a) (List a))
+        listStep decoder_ (n, xs) =
+            if n <= 0 then
+                BD.succeed (BD.Done xs)
+            else
+                BD.map (\x -> BD.Loop (n - 1, x :: xs)) decoder_
+    in
+        BD.unsignedInt8
+            |> BD.andThen (\len -> BD.loop (len, []) (listStep decoder))
+
+gyouToInt g =
+    case g of
+        ""   -> Just 0
+        "あ" -> Just 1
+        "か" -> Just 2
+        "が" -> Just 3
+        "さ" -> Just 4
+        "ざ" -> Just 5
+        "た" -> Just 6
+        "だ" -> Just 7
+        "な" -> Just 8
+        "は" -> Just 9
+        "ば" -> Just 10
+        "ぱ" -> Just 11
+        "ま" -> Just 12
+        "や" -> Just 13
+        "ら" -> Just 14
+        "わ" -> Just 15
+        _ -> Nothing
+
+gyouFromInt i =
+    case i of
+        0  -> Just ""
+        1  -> Just "あ"
+        2  -> Just "か"
+        3  -> Just "が"
+        4  -> Just "さ"
+        5  -> Just "ざ"
+        6  -> Just "た"
+        7  -> Just "だ"
+        8  -> Just "な"
+        9  -> Just "は"
+        10 -> Just "ば"
+        11 -> Just "ぱ"
+        12 -> Just "ま"
+        13 -> Just "や"
+        14 -> Just "ら"
+        15 -> Just "わ"
+        _ -> Nothing
+
+katuyoukeiSyuruiToInt katuyoukei =
+    case katuyoukei of
+        Godan _ -> 0
+        Kami _  -> 1
+        Shimo _ -> 2
+        Sahen   -> 3
+
+katuyoukeiSyuruiFromInt i =
+    case i of
+        0 -> Just Godan
+        1 -> Just Kami
+        2 -> Just Shimo
+        3 -> Just (\_ -> Sahen)
+        _ -> Nothing
+
+dousiSyuruiToInt syurui =
+    case syurui of
+        Jidousi -> 0
+        Tadousi -> 1
+        Ryouhou -> 2
+
+dousiSyuruiFromInt i =
+    case i of
+        0 -> Just Jidousi
+        1 -> Just Tadousi
+        2 -> Just Ryouhou
+        _ -> Nothing
+
+base64ToURI : String -> String
+base64ToURI =
+    String.replace "+" "*"
+        >> String.replace "/" "."
+        >> String.replace "=" "-"
+
+uriToBase64 : String -> String
+uriToBase64 =
+    String.replace "*" "+"
+        >> String.replace "." "/"
+        >> String.replace "-" "="
+
+
+
 -- INIT
 
 
@@ -656,107 +897,110 @@ init : ( Model, Cmd Msg )
 init =
     (
         { sentences = []
-        , meisi =
-            [ "人"
-            , "神"
-            , "他人"
-            , "人類"
-            , "可能性"
-            , "アイドル"
-            , "可燃性"
-            , "群馬"
-            , "年収"
-            , "百合"
-            , "メモリ空間"
-            , "流動性"
-            , "ＣＰＵ"
-            , "化粧品"
-            , "生活リズム"
-            , "バナナ"
-            , "隠れマルコフモデル"
-            , "猫"
-            , "筑波大学"
-            , "核実験"
-            , "ＡＩ"
-            , "薬"
-            , "社会"
-            , "ゴリラ"
-            , "単位"
-            , "人生"
-            , "オタク"
-            ]
-        , keiyousi =
-            [ "美し"
-            , "優し"
-            , "賢"
-            , "虚し"
-            , "怖"
-            , "痛"
-            , "悲し"
-            , "美味し"
-            , "醜"
-            , "悔し"
-            , "可愛"
-            , "大き"
-            , "長"
-            , "若"
-            , "深"
-            , "遠"
-            , "暗"
-            , "薄"
-            , "たくまし"
-            , "楽し"
-            , "激し"
-            ]
-        , dousi =
-            ([ Dousi "燃" <| Shimo "あ"
-            , Dousi "生" <| Kami  "か"
-            , Dousi "話" <| Godan "さ"
-            , Dousi "寝" <| Shimo ""
-            , Dousi "光" <| Godan "ら"
-            , Dousi "輝" <| Godan "か"
-            , Dousi "曲が" <| Godan "ら"
-            , Dousi "歩" <| Godan "か"
-            , Dousi "落" <| Kami "た"
-            ] |> List.map (\f -> f Jidousi))
-            ++
-            ([ Dousi "食" <| Shimo "ば"
-            , Dousi "飲" <| Godan "ま"
-            , Dousi "買" <| Godan "わ"
-            , Dousi "見" <| Shimo ""
-            , Dousi "見" <| Shimo "さ"
-            , Dousi "書" <| Godan "か"
-            , Dousi "送" <| Godan "ら"
-            , Dousi "使" <| Godan "わ"
-            , Dousi "話" <| Godan "さ"
-            , Dousi "穿" <| Godan "た"
-            , Dousi "曲" <| Shimo "が"
-            , Dousi "攻" <| Shimo "ま"
-            , Dousi "落と" <| Godan "さ"
-            , Dousi "叩" <| Godan "か"
-            ] |> List.map (\f -> f Tadousi))
-            ++
-            ([ "筋トレ"
-            , "崩壊"
-            ] |> List.map (\gokan -> Dousi gokan Sahen Jidousi))
-            ++
-            ([ "待望"
-            , "強要"
-            , "報告"
-            , "実装"
-            , "連想"
-            ] |> List.map (\gokan -> Dousi gokan Sahen Tadousi))
-            ++
-            (["配信"
-            , "開発"
-            , "エンジョイ"
-            ] |> List.map (\gokan -> Dousi gokan Sahen Ryouhou))
+        , tango =
+            { meisi =
+                [ "人"
+                , "神"
+                , "他人"
+                , "人類"
+                , "可能性"
+                , "アイドル"
+                , "可燃性"
+                , "群馬"
+                , "年収"
+                , "百合"
+                , "メモリ空間"
+                , "流動性"
+                , "ＣＰＵ"
+                , "化粧品"
+                , "生活リズム"
+                , "バナナ"
+                , "隠れマルコフモデル"
+                , "猫"
+                , "筑波大学"
+                , "核実験"
+                , "ＡＩ"
+                , "薬"
+                , "社会"
+                , "ゴリラ"
+                , "単位"
+                , "人生"
+                , "オタク"
+                ]
+            , keiyousi =
+                [ "美し"
+                , "優し"
+                , "賢"
+                , "虚し"
+                , "怖"
+                , "痛"
+                , "悲し"
+                , "美味し"
+                , "醜"
+                , "悔し"
+                , "可愛"
+                , "大き"
+                , "長"
+                , "若"
+                , "深"
+                , "遠"
+                , "暗"
+                , "薄"
+                , "たくまし"
+                , "楽し"
+                , "激し"
+                ]
+            , dousi =
+                ([ Dousi "燃" <| Shimo "あ"
+                , Dousi "生" <| Kami  "か"
+                , Dousi "話" <| Godan "さ"
+                , Dousi "寝" <| Shimo ""
+                , Dousi "光" <| Godan "ら"
+                , Dousi "輝" <| Godan "か"
+                , Dousi "曲が" <| Godan "ら"
+                , Dousi "歩" <| Godan "か"
+                , Dousi "落" <| Kami "た"
+                ] |> List.map (\f -> f Jidousi))
+                ++
+                ([ Dousi "食" <| Shimo "ば"
+                , Dousi "飲" <| Godan "ま"
+                , Dousi "買" <| Godan "わ"
+                , Dousi "見" <| Shimo ""
+                , Dousi "見" <| Shimo "さ"
+                , Dousi "書" <| Godan "か"
+                , Dousi "送" <| Godan "ら"
+                , Dousi "使" <| Godan "わ"
+                , Dousi "話" <| Godan "さ"
+                , Dousi "穿" <| Godan "た"
+                , Dousi "曲" <| Shimo "が"
+                , Dousi "攻" <| Shimo "ま"
+                , Dousi "落と" <| Godan "さ"
+                , Dousi "叩" <| Godan "か"
+                ] |> List.map (\f -> f Tadousi))
+                ++
+                ([ "筋トレ"
+                , "崩壊"
+                ] |> List.map (\gokan -> Dousi gokan Sahen Jidousi))
+                ++
+                ([ "待望"
+                , "強要"
+                , "報告"
+                , "実装"
+                , "連想"
+                ] |> List.map (\gokan -> Dousi gokan Sahen Tadousi))
+                ++
+                (["配信"
+                , "開発"
+                , "エンジョイ"
+                ] |> List.map (\gokan -> Dousi gokan Sahen Ryouhou))
+            }
         , tuikaSettei =
             { gokan = ""
             , gyou = "あ"
             , katuyoukei = "五段"
             , syurui = "自動詞"
             }
+        , toURL = ""
         }
     , Cmd.none
     )
