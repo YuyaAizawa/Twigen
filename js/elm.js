@@ -5697,8 +5697,8 @@ var $author$project$Twigen$choice = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 414, column: 34},
-					end: {line: 414, column: 44}
+					start: {line: 404, column: 34},
+					end: {line: 404, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -8640,39 +8640,11 @@ var $author$project$Twigen$mainView = function (model) {
 			]));
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $author$project$Twigen$tweetButton = function (url) {
-	return A2(
-		$elm$html$Html$a,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$href('https://twitter.com/share'),
-				$elm$html$Html$Attributes$class('twitter-share-button'),
-				A2(
-				$elm$html$Html$Attributes$attribute,
-				'data-url',
-				$elm$url$Url$toString(url)),
-				A2($elm$html$Html$Attributes$attribute, 'data-hashtags', 'クソツイジェネレータ')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('作成したジェネレータをTweetで共有')
-			]));
-};
 var $author$project$Twigen$view = function (model) {
 	return {
 		body: _List_fromArray(
 			[
 				$author$project$Twigen$mainView(model),
-				$author$project$Twigen$tweetButton(model.url),
 				A2(
 				$elm$html$Html$p,
 				_List_Nil,
