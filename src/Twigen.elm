@@ -1,4 +1,4 @@
-module Twigen exposing (main)
+port module Twigen exposing (main)
 
 import Base64
 import Browser exposing (Document, UrlRequest)
@@ -25,10 +25,11 @@ main =
         , onUrlChange = UrlChanged
         }
 
+port reloadWiget : String -> Cmd msg
+
 
 
 -- MODEL
-
 
 type alias Model =
     { key : Nav.Key
@@ -51,10 +52,31 @@ type alias TuikaSettei =
     , syurui : String
     }
 
+init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url key =
+    ( initModel url key
+    , Task.perform UrlChanged <| Task.succeed <| url
+    )
 
+initModel : Url -> Nav.Key -> Model
+initModel url key =
+    { key = key
+    , url = url
+    , sentences = []
+    , tango =
+        { meisi = []
+        , keiyousi = []
+        , dousi = []
+        }
+    , tuikaSettei =
+        { gokan = ""
+        , gyou = ""
+        , katuyoukei = "五段"
+        , syurui = "自動詞"
+        }
+    }
 
 -- UPDATE
-
 
 type Msg
     = Roll
@@ -80,9 +102,16 @@ update msg model =
             ( { model | sentences = newSentences }, Cmd.none )
 
         TangoUpdate tango ->
-            ( { model | tango = tango }
-            , Nav.pushUrl model.key <| Url.toString <| updateQuery tango model.url
-            )
+            let
+                url = updateQuery tango model.url
+                urlStr = Url.toString url
+            in
+                ( { model | tango = tango, url = url }
+                , Cmd.batch
+                    [ Nav.pushUrl model.key urlStr
+                    , reloadWiget urlStr
+                    ]
+                )
 
         TuikaSetteiUpdate settei ->
             ( { model | tuikaSettei = settei }, Cmd.none )
@@ -113,7 +142,9 @@ update msg model =
                         ( model_, Cmd.none )
 
                     Just tango ->
-                        ( { model_ | tango = tango }, Cmd.none )
+                        ( { model_ | tango = tango }
+                        , reloadWiget <| Url.toString model.url
+                        )
 
 updateQuery : TangoData -> Url -> Url
 updateQuery tango url =
@@ -123,13 +154,12 @@ updateQuery tango url =
 
 -- VIEW
 
-
 view : Model -> Document Msg
 view model =
     { title = "クソツイジェネレータ"
     , body =
         [ mainView model
-        , tweetButton model.url
+        , tweetButton
         , p []
             [ text <| "code:"
             , a
@@ -293,20 +323,13 @@ dousiSakujo at tango =
         TangoUpdate { tango | dousi = help at tango.dousi [] }
 
 
-tweetButton : Url -> Html Msg
-tweetButton url =
-    a
-        [ Attr.href "https://twitter.com/share"
-        , Attr.class "twitter-share-button"
-        , Attr.attribute "data-text" "好きな単語でくすっとできるクソツイを生成＆シェア"
-        , Attr.attribute "data-url" (Url.toString url)
-        , Attr.attribute "data-hashtags" "クソツイジェネレータ"
-        , Attr.attribute "data-related" "TypedTypelessTy"
-        ]
-        [ text <| "作成したジェネレータをTweetで共有" ]
+tweetButton : Html msg
+tweetButton =
+    div [ Attr.id "tweet-button" ] []
+
+
 
 -- SUBSCRIPTIONS
-
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -315,7 +338,6 @@ subscriptions model =
 
 
 -- TWEET PATTERN DIFINITIONS
-
 
 sentence tango =
     choice
@@ -950,32 +972,3 @@ uriToBase64 =
     String.replace "*" "+"
         >> String.replace "." "/"
         >> String.replace "-" "="
-
-
-
--- INIT
-
-
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
-    ( initModel url key
-    , Task.perform UrlChanged <| Task.succeed <| url
-    )
-
-initModel : Url -> Nav.Key -> Model
-initModel url key =
-    { key = key
-    , url = url
-    , sentences = []
-    , tango =
-        { meisi = []
-        , keiyousi = []
-        , dousi = []
-        }
-    , tuikaSettei =
-        { gokan = ""
-        , gyou = ""
-        , katuyoukei = "五段"
-        , syurui = "自動詞"
-        }
-    }
