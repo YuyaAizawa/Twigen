@@ -5447,6 +5447,7 @@ var $elm$core$Maybe$andThen = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
 };
@@ -5585,9 +5586,10 @@ var $elm$random$Random$list = F2(
 			});
 	});
 var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Twigen$reloadWiget = _Platform_outgoingPort('reloadWiget', $elm$json$Json$Encode$string);
 var $elm$random$Random$andThen = F2(
 	function (callback, _v0) {
 		var genA = _v0.a;
@@ -5697,8 +5699,8 @@ var $author$project$Twigen$choice = function (list) {
 			_Debug_todo(
 				'Twigen',
 				{
-					start: {line: 416, column: 34},
-					end: {line: 416, column: 44}
+					start: {line: 438, column: 34},
+					end: {line: 438, column: 44}
 				})('Error'));
 	} else {
 		var hd = list.a;
@@ -7885,15 +7887,18 @@ var $author$project$Twigen$update = F2(
 					$elm$core$Platform$Cmd$none);
 			case 'TangoUpdate':
 				var tango = msg.a;
+				var url = A2($author$project$Twigen$updateQuery, tango, model.url);
+				var urlStr = $elm$url$Url$toString(url);
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{tango: tango}),
-					A2(
-						$elm$browser$Browser$Navigation$pushUrl,
-						model.key,
-						$elm$url$Url$toString(
-							A2($author$project$Twigen$updateQuery, tango, model.url))));
+						{tango: tango, url: url}),
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								A2($elm$browser$Browser$Navigation$pushUrl, model.key, urlStr),
+								$author$project$Twigen$reloadWiget(urlStr)
+							])));
 			case 'TuikaSetteiUpdate':
 				var settei = msg.a;
 				return _Utils_Tuple2(
@@ -7931,12 +7936,12 @@ var $author$project$Twigen$update = F2(
 						_Utils_update(
 							model_,
 							{tango: tango}),
-						$elm$core$Platform$Cmd$none);
+						$author$project$Twigen$reloadWiget(
+							$elm$url$Url$toString(model.url)));
 				}
 		}
 	});
 var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -8640,41 +8645,20 @@ var $author$project$Twigen$mainView = function (model) {
 			]));
 };
 var $elm$html$Html$p = _VirtualDom_node('p');
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $author$project$Twigen$tweetButton = function (url) {
-	return A2(
-		$elm$html$Html$a,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$href('https://twitter.com/share'),
-				$elm$html$Html$Attributes$class('twitter-share-button'),
-				A2($elm$html$Html$Attributes$attribute, 'data-text', '好きな単語でくすっとできるクソツイを生成＆シェア'),
-				A2(
-				$elm$html$Html$Attributes$attribute,
-				'data-url',
-				$elm$url$Url$toString(url)),
-				A2($elm$html$Html$Attributes$attribute, 'data-hashtags', 'クソツイジェネレータ'),
-				A2($elm$html$Html$Attributes$attribute, 'data-related', 'TypedTypelessTy')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('作成したジェネレータをTweetで共有')
-			]));
-};
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
+var $author$project$Twigen$tweetButton = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$id('tweet-button')
+		]),
+	_List_Nil);
 var $author$project$Twigen$view = function (model) {
 	return {
 		body: _List_fromArray(
 			[
 				$author$project$Twigen$mainView(model),
-				$author$project$Twigen$tweetButton(model.url),
+				$author$project$Twigen$tweetButton,
 				A2(
 				$elm$html$Html$p,
 				_List_Nil,
