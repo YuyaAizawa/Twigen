@@ -10,10 +10,7 @@
 <body>
   <script>
     const app = Elm.Main.init();
-    app.ports.reloadWiget.subscribe(function(url) {
-      document.getElementById("tweet-button").innerHTML = '<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text="好きな単語でくすっとできるクソツイを生成＆シェア" data-url=' + url + ' data-hashtags="クソツイジェネレータ" data-related="TypedTypelessTy">作成したジェネレータをTweetで共有</a>';
-      twttr.widgets.load();
-    });
+    app.ports.reloadWiget.subscribe(function() { twttr.widgets.load(); });
   </script>
 </body>
 </html>

@@ -12,6 +12,7 @@ import Html.Events exposing (..)
 import Random exposing (Generator, map, map2, map3, lazy)
 import Task
 import Url exposing (Url)
+import Url.Builder as UB
 
 
 
@@ -25,7 +26,7 @@ main =
         , onUrlChange = UrlChanged
         }
 
-port reloadWiget : String -> Cmd msg
+port reloadWiget : () -> Cmd msg
 
 
 
@@ -99,7 +100,7 @@ update msg model =
                 ( model, command )
 
         NewSentences newSentences ->
-            ( { model | sentences = newSentences }, Cmd.none )
+            ( { model | sentences = newSentences }, reloadWiget () )
 
         TangoUpdate tango ->
             let
@@ -107,10 +108,7 @@ update msg model =
                 urlStr = Url.toString url
             in
                 ( { model | tango = tango, url = url }
-                , Cmd.batch
-                    [ Nav.pushUrl model.key urlStr
-                    , reloadWiget urlStr
-                    ]
+                , Nav.pushUrl model.key urlStr
                 )
 
         TuikaSetteiUpdate settei ->
@@ -142,9 +140,7 @@ update msg model =
                         ( model_, Cmd.none )
 
                     Just tango ->
-                        ( { model_ | tango = tango }
-                        , reloadWiget <| Url.toString model.url
-                        )
+                        ( { model_ | tango = tango }, Cmd.none )
 
 updateQuery : TangoData -> Url -> Url
 updateQuery tango url =
@@ -158,8 +154,8 @@ view : Model -> Document Msg
 view model =
     { title = "クソツイジェネレータ"
     , body =
-        [ mainView model
-        , tweetButton
+        [ generatorView model
+        , tangoView model
         , p []
             [ text <| "code:"
             , a
@@ -169,31 +165,60 @@ view model =
         ]
     }
 
-mainView : Model -> Html Msg
-mainView model =
+generatorView : Model -> Html Msg
+generatorView { sentences, url } =
+    let
+        urlString =
+            url |> Url.toString
+    in
+        div []
+            [ h1 [][ text "クソツイジェネレータ" ]
+            , sentences
+                |> List.map (kusoTweetView urlString)
+                |> ul []
+            , button [ onClick Roll ] [ text "クソツイ生成" ]
+            ]
+
+kusoTweetView : String -> String -> Html msg
+kusoTweetView urlString kusoTweet =
+    li []
+        [ tweetButton kusoTweet urlString "クソツイジェネレータ"
+        , text kusoTweet
+        ]
+
+tweetButton : String -> String -> String -> Html msg
+tweetButton text_ url hashtag =
+    let
+        query =
+            [ UB.string "url" url
+            , UB.string "text" text_
+            , UB.string "hashtags" hashtag
+            ] |> UB.toQuery
+    in
+        a
+            [ Attr.class "tweet-button"
+            , Attr.href <| "http://twitter.com/share" ++ query
+            , Attr.target "_blank"
+            ]
+            [ text "ツイート" ]
+
+tangoView : Model -> Html Msg
+tangoView { tango, tuikaSettei } =
     div []
-        [ h1 [][ text "クソツイジェネレータ" ]
-        , ul []
-          (model.sentences
-              |> List.map (\s ->
-                  li[][text s]
-              )
-          )
-        , button [ onClick Roll ] [ text "Roll" ]
-        , div [ Attr.style "display" "flex" ]
+        [ div [ Attr.style "display" "flex" ]
             [ div []
                 [ h3 [][ text <| "名詞" ]
                 , textarea
-                    [ Attr.value <| (model.tango.meisi |> String.join "\n")
-                    , onInput <| meisiKousin model.tango
+                    [ Attr.value <| (tango.meisi |> String.join "\n")
+                    , onInput <| meisiKousin tango
                     , Attr.style "resize" "none"
                     ][]
                 ]
             , div []
                 [ h3 [][ text <| "形容詞" ]
                 , textarea
-                    [ Attr.value <| (model.tango.keiyousi |> String.join "\n")
-                    , onInput <| keiyousiKousin model.tango
+                    [ Attr.value <| (tango.keiyousi |> String.join "\n")
+                    , onInput <| keiyousiKousin tango
                     , Attr.style "resize" "none"
                     ][]
                 ]
@@ -206,7 +231,7 @@ mainView model =
                     , Attr.style "display" "block"
                     , Attr.style "height" "100px"
                     ]
-                    ( model.tango.dousi
+                    ( tango.dousi
                         |> List.indexedMap (\i (Dousi gokan katuyou syurui) ->
                             tr []
                                 [ td [][ text <| gokan ]
@@ -214,7 +239,7 @@ mainView model =
                                 , td [][ text <| dousiSyuruiToString <| syurui ]
                                 , td []
                                     [ button
-                                        [ onClick <| dousiSakujo i model.tango ]
+                                        [ onClick <| dousiSakujo i tango ]
                                         [ text <| "削除" ]
                                     ]
                                 ]
@@ -224,10 +249,10 @@ mainView model =
             , input
                 [ Attr.type_ "text"
                 , Attr.placeholder "動詞の語幹"
-                , onInput <| gokanSettei model.tuikaSettei
+                , onInput <| gokanSettei tuikaSettei
                 ][]
             , select
-                [ onInput <| gyouSettei model.tuikaSettei ]
+                [ onInput <| gyouSettei tuikaSettei ]
                 [ option [ Attr.value "" ][ text <| "(なし)" ]
                 , option [ Attr.value "あ" ][ text <| "あ行" ]
                 , option [ Attr.value "か" ][ text <| "か行" ]
@@ -243,20 +268,20 @@ mainView model =
                 , option [ Attr.value "わ" ][ text <| "わ行" ]
                 ]
             , select
-                [ onInput <| katuyoukeiSettei model.tuikaSettei ]
+                [ onInput <| katuyoukeiSettei tuikaSettei ]
                 [ option [ Attr.value "五段" ][ text <| "五段" ]
                 , option [ Attr.value "上一" ][ text <| "上一" ]
                 , option [ Attr.value "下一" ][ text <| "下一" ]
                 , option [ Attr.value "さ変格" ][ text <| "変格" ]
                 ]
             , select
-                [ onInput <| syuruiSettei model.tuikaSettei ]
+                [ onInput <| syuruiSettei tuikaSettei ]
                 [ option [ Attr.value "自動詞" ][ text <| "自動詞" ]
                 , option [ Attr.value "他動詞" ][ text <| "他動詞" ]
                 , option [ Attr.value "両方"   ][ text <| "両方" ]
                 ]
             , button
-                [ onClick <| dousiTuika model.tuikaSettei model.tango ]
+                [ onClick <| dousiTuika tuikaSettei tango ]
                 [ text <| "追加" ]
             ]
         ]
@@ -321,11 +346,6 @@ dousiSakujo at tango =
                     result |> List.reverse
     in
         TangoUpdate { tango | dousi = help at tango.dousi [] }
-
-
-tweetButton : Html msg
-tweetButton =
-    div [ Attr.id "tweet-button" ] []
 
 
 
