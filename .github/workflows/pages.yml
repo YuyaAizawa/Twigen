@@ -38,7 +38,6 @@ jobs:
           key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-modules-
-
       - name: Install dependencies
         if: steps.node-cache.outputs.cache-hit != 'true'
         run: npm ci
@@ -46,7 +45,14 @@ jobs:
       - name: Build
         run: npm run build --if-present
 
+      - name: Configure 404
+        run: sed -i -e 's@{{ site.github.url }}@$TOPPAGE@g' public/404.html
+        env:
+          TOPPAGE: ${{ github.event.repository.name }}
+
       - uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'public/'
 
   # Deployment job
   deploy:
