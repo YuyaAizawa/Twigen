@@ -8,11 +8,3 @@
 
 ## Development
 ほしい機能，構文があったら気軽にissue立ててね．
-
-## Build
-```sh
-npm install
-npm run build
-```
-手元で動かすには何らかのサーバーで `/_site` 以下を公開する．
-
