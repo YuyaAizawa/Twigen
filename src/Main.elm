@@ -6,7 +6,7 @@ import Browser.Navigation as Nav
 import Bytes exposing (Bytes)
 import Bytes.Encode as BE
 import Bytes.Decode as BD
-import Html exposing (Html, div, h1, h2, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input, p, a)
+import Html exposing (Html, div, h1, h2, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input, p, a, i, span)
 import Html.Attributes as Attr
 import Html.Events exposing (..)
 import Random exposing (Generator, map, map2, map3, lazy)
@@ -175,7 +175,7 @@ generatorView { sentences, url } =
         urlString =
             url |> Url.toString
     in
-        div []
+        div [ Attr.class "kuso-tw-list"]
             [ h1 [][ text "クソツイジェネレータ" ]
             , sentences
                 |> List.map (kusoTweetView urlString)
@@ -187,7 +187,7 @@ kusoTweetView : String -> String -> Html msg
 kusoTweetView urlString kusoTweet =
     li []
         [ tweetButton kusoTweet urlString "クソツイジェネレータ"
-        , text kusoTweet
+        , span [ Attr.class "kuso-tw" ][ text kusoTweet ]
         ]
 
 tweetButton : String -> String -> String -> Html msg
@@ -200,11 +200,11 @@ tweetButton text_ url hashtag =
             ] |> UB.toQuery
     in
         a
-            [ Attr.class "tweet-button"
+            [ Attr.class "twttr-btn"
             , Attr.href <| "http://twitter.com/share" ++ query
             , Attr.target "_blank"
             ]
-            [ text "ツイート" ]
+            [ i [][], span [][ text "ツイート" ] ]
 
 tangoView : Model -> Html Msg
 tangoView { tango, tuikaSettei, isVisibleSettei } =
