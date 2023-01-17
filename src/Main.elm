@@ -1,4 +1,4 @@
-port module Main exposing (main)
+module Main exposing (main)
 
 import Base64
 import Browser exposing (Document, UrlRequest)
@@ -6,7 +6,7 @@ import Browser.Navigation as Nav
 import Bytes exposing (Bytes)
 import Bytes.Encode as BE
 import Bytes.Decode as BD
-import Html exposing (Html, div, h1, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input, p, a)
+import Html exposing (Html, div, h1, h2, h3, button, ul, li, text, textarea, br, table, tbody, tr, td, select, option, input, p, a)
 import Html.Attributes as Attr
 import Html.Events exposing (..)
 import Random exposing (Generator, map, map2, map3, lazy)
@@ -26,8 +26,6 @@ main =
         , onUrlChange = UrlChanged
         }
 
-port reloadWiget : () -> Cmd msg
-
 
 
 -- MODEL
@@ -38,6 +36,7 @@ type alias Model =
     , sentences : List String
     , tango : TangoData
     , tuikaSettei : TuikaSettei
+    , isVisibleSettei : Bool
     }
 
 type alias TangoData =
@@ -75,6 +74,7 @@ initModel url key =
         , katuyoukei = "五段"
         , syurui = "自動詞"
         }
+    , isVisibleSettei = False
     }
 
 -- UPDATE
@@ -82,6 +82,7 @@ initModel url key =
 type Msg
     = Roll
     | NewSentences (List String)
+    | ToggleSettei
     | TangoUpdate TangoData
     | TuikaSetteiUpdate TuikaSettei
     | LinkClicked UrlRequest
@@ -100,7 +101,10 @@ update msg model =
                 ( model, command )
 
         NewSentences newSentences ->
-            ( { model | sentences = newSentences }, reloadWiget () )
+            ( { model | sentences = newSentences }, Cmd.none )
+
+        ToggleSettei ->
+            ( { model | isVisibleSettei = not model.isVisibleSettei }, Cmd.none )
 
         TangoUpdate tango ->
             let
@@ -203,86 +207,90 @@ tweetButton text_ url hashtag =
             [ text "ツイート" ]
 
 tangoView : Model -> Html Msg
-tangoView { tango, tuikaSettei } =
-    div []
-        [ div [ Attr.style "display" "flex" ]
-            [ div []
-                [ h3 [][ text <| "名詞" ]
-                , textarea
-                    [ Attr.value <| (tango.meisi |> String.join "\n")
-                    , onInput <| meisiKousin tango
-                    , Attr.style "resize" "none"
-                    ][]
+tangoView { tango, tuikaSettei, isVisibleSettei } =
+    div [ Attr.class "tango-settei" ]
+        [ h2 [ onClick ToggleSettei ][ text <| "単語設定" ++ if isVisibleSettei then "▼" else "▲" ]
+        , if not isVisibleSettei then text "" else
+          div []
+            [ div [ Attr.style "display" "flex" ]
+                [ div []
+                    [ h3 [][ text <| "名詞" ]
+                    , textarea
+                        [ Attr.value <| (tango.meisi |> String.join "\n")
+                        , onInput <| meisiKousin tango
+                        , Attr.style "resize" "none"
+                        ][]
+                    ]
+                , div []
+                    [ h3 [][ text <| "形容詞" ]
+                    , textarea
+                        [ Attr.value <| (tango.keiyousi |> String.join "\n")
+                        , onInput <| keiyousiKousin tango
+                        , Attr.style "resize" "none"
+                        ][]
+                    ]
                 ]
             , div []
-                [ h3 [][ text <| "形容詞" ]
-                , textarea
-                    [ Attr.value <| (tango.keiyousi |> String.join "\n")
-                    , onInput <| keiyousiKousin tango
-                    , Attr.style "resize" "none"
-                    ][]
-                ]
-            ]
-        , div []
-            [ h3 [][ text <| "動詞" ]
-            , table []
-                [ tbody
-                    [ Attr.style "overflow-y" "scroll"
-                    , Attr.style "display" "block"
-                    , Attr.style "height" "100px"
-                    ]
-                    ( tango.dousi
-                        |> List.indexedMap (\i (Dousi gokan katuyou syurui) ->
-                            tr []
-                                [ td [][ text <| gokan ]
-                                , td [][ text <| katuyouToString katuyou ]
-                                , td [][ text <| dousiSyuruiToString <| syurui ]
-                                , td []
-                                    [ button
-                                        [ onClick <| dousiSakujo i tango ]
-                                        [ text <| "削除" ]
+                [ h3 [][ text <| "動詞" ]
+                , table []
+                    [ tbody
+                        [ Attr.style "overflow-y" "scroll"
+                        , Attr.style "display" "block"
+                        , Attr.style "height" "100px"
+                        ]
+                        ( tango.dousi
+                            |> List.indexedMap (\i (Dousi gokan katuyou syurui) ->
+                                tr []
+                                    [ td [][ text <| gokan ]
+                                    , td [][ text <| katuyouToString katuyou ]
+                                    , td [][ text <| dousiSyuruiToString <| syurui ]
+                                    , td []
+                                        [ button
+                                            [ onClick <| dousiSakujo i tango ]
+                                            [ text <| "削除" ]
+                                        ]
                                     ]
-                                ]
+                            )
                         )
-                    )
+                    ]
+                , input
+                    [ Attr.type_ "text"
+                    , Attr.placeholder "動詞の語幹"
+                    , onInput <| gokanSettei tuikaSettei
+                    ][]
+                , select
+                    [ onInput <| gyouSettei tuikaSettei ]
+                    [ option [ Attr.value "" ][ text <| "(なし)" ]
+                    , option [ Attr.value "あ" ][ text <| "あ行" ]
+                    , option [ Attr.value "か" ][ text <| "か行" ]
+                    , option [ Attr.value "が" ][ text <| "が行" ]
+                    , option [ Attr.value "さ" ][ text <| "さ行" ]
+                    , option [ Attr.value "ざ" ][ text <| "ざ行" ]
+                    , option [ Attr.value "た" ][ text <| "た行" ]
+                    , option [ Attr.value "だ" ][ text <| "だ行" ]
+                    , option [ Attr.value "な" ][ text <| "な行" ]
+                    , option [ Attr.value "ば" ][ text <| "ば行" ]
+                    , option [ Attr.value "ま" ][ text <| "ま行" ]
+                    , option [ Attr.value "ら" ][ text <| "ら行" ]
+                    , option [ Attr.value "わ" ][ text <| "わ行" ]
+                    ]
+                , select
+                    [ onInput <| katuyoukeiSettei tuikaSettei ]
+                    [ option [ Attr.value "五段" ][ text <| "五段" ]
+                    , option [ Attr.value "上一" ][ text <| "上一" ]
+                    , option [ Attr.value "下一" ][ text <| "下一" ]
+                    , option [ Attr.value "さ変格" ][ text <| "変格" ]
+                    ]
+                , select
+                    [ onInput <| syuruiSettei tuikaSettei ]
+                    [ option [ Attr.value "自動詞" ][ text <| "自動詞" ]
+                    , option [ Attr.value "他動詞" ][ text <| "他動詞" ]
+                    , option [ Attr.value "両方"   ][ text <| "両方" ]
+                    ]
+                , button
+                    [ onClick <| dousiTuika tuikaSettei tango ]
+                    [ text <| "追加" ]
                 ]
-            , input
-                [ Attr.type_ "text"
-                , Attr.placeholder "動詞の語幹"
-                , onInput <| gokanSettei tuikaSettei
-                ][]
-            , select
-                [ onInput <| gyouSettei tuikaSettei ]
-                [ option [ Attr.value "" ][ text <| "(なし)" ]
-                , option [ Attr.value "あ" ][ text <| "あ行" ]
-                , option [ Attr.value "か" ][ text <| "か行" ]
-                , option [ Attr.value "が" ][ text <| "が行" ]
-                , option [ Attr.value "さ" ][ text <| "さ行" ]
-                , option [ Attr.value "ざ" ][ text <| "ざ行" ]
-                , option [ Attr.value "た" ][ text <| "た行" ]
-                , option [ Attr.value "だ" ][ text <| "だ行" ]
-                , option [ Attr.value "な" ][ text <| "な行" ]
-                , option [ Attr.value "ば" ][ text <| "ば行" ]
-                , option [ Attr.value "ま" ][ text <| "ま行" ]
-                , option [ Attr.value "ら" ][ text <| "ら行" ]
-                , option [ Attr.value "わ" ][ text <| "わ行" ]
-                ]
-            , select
-                [ onInput <| katuyoukeiSettei tuikaSettei ]
-                [ option [ Attr.value "五段" ][ text <| "五段" ]
-                , option [ Attr.value "上一" ][ text <| "上一" ]
-                , option [ Attr.value "下一" ][ text <| "下一" ]
-                , option [ Attr.value "さ変格" ][ text <| "変格" ]
-                ]
-            , select
-                [ onInput <| syuruiSettei tuikaSettei ]
-                [ option [ Attr.value "自動詞" ][ text <| "自動詞" ]
-                , option [ Attr.value "他動詞" ][ text <| "他動詞" ]
-                , option [ Attr.value "両方"   ][ text <| "両方" ]
-                ]
-            , button
-                [ onClick <| dousiTuika tuikaSettei tango ]
-                [ text <| "追加" ]
             ]
         ]
 
