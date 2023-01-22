@@ -201,7 +201,7 @@ tweetButton text_ url hashtag =
     in
         a
             [ Attr.class "twttr-btn"
-            , Attr.href <| "http://twitter.com/share" ++ query
+            , Attr.href <| "http://twitter.com/intent/tweet" ++ query
             , Attr.target "_blank"
             ]
             [ i [][], span [][ text "ツイート" ] ]
